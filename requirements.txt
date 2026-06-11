@@ -1,0 +1,3 @@
+# NEPS Data Platform Requirements
+fastapi
+uvicorn
