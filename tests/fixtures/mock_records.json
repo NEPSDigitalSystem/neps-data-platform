@@ -1,0 +1,27 @@
+[
+  {
+    "record_id": "NEPS-GHA-0001",
+    "redcap_event_name": "month_1_arm_1",
+    "month": 1,
+    "survey_date": "2025-02-01",
+    "survey_complete": "2",
+    "perceived_stress_score": 22.5,
+    "mood_status": "Fair",
+    "anxiety_score": 8.0,
+    "depression_score": 6.0,
+    "sleep_quality": "Good",
+    "daily_functioning": 75.0,
+    "fatigue_level": "Mild",
+    "school_attendance_days": 18,
+    "social_isolation_score": 3.0,
+    "coping_behaviours": "Active",
+    "substance_use": "None",
+    "suicidality_screening": "No",
+    "self_esteem_score": 25.0,
+    "loneliness_score": 5.0,
+    "risk_flag": "LOW",
+    "requires_follow_up": "0",
+    "redcap_repeat_instrument": "monthly_self_report",
+    "redcap_repeat_instance": "1"
+  }
+]

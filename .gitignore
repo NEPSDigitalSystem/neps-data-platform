@@ -216,3 +216,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Local development-only mock REDCap service
+mock-redcap-service/

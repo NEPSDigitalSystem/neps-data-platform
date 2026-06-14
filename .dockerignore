@@ -1,0 +1,14 @@
+mock-redcap-service/
+.git/
+.github/
+.env
+.env.*
+*.md
+tests/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.venv/
+venv/
