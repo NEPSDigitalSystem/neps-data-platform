@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+<<<<<<< Updated upstream
+=======
+import time
+>>>>>>> Stashed changes
 from typing import Any
 
 import requests
@@ -54,6 +58,7 @@ class MockRedcapClient:
         if events:
             params["events"] = events
 
+<<<<<<< Updated upstream
         survey_payload = self._get("/export/records", params=params)
         survey_records = survey_payload if isinstance(survey_payload, list) else []
 
@@ -95,6 +100,35 @@ class MockRedcapClient:
                 for referral in referrals
             ]
 
+=======
+        survey_records = self._get("/export/records", params=params)
+        if not isinstance(survey_records, list):
+            survey_records = []
+
+        participants_payload = self._get("/participants", params={"limit": 500})
+        participants = participants_payload.get("data", [])
+        demographics = [
+            {
+                **participant,
+                "redcap_repeat_instrument": "",
+                "redcap_repeat_instance": "",
+                "_instrument": "demographics",
+            }
+            for participant in participants
+        ]
+
+        distress_payload = self._get("/screenings/distress")
+        distress_records = [
+            {
+                **screening,
+                "redcap_repeat_instrument": "",
+                "redcap_repeat_instance": "",
+                "_instrument": "distress_screening",
+            }
+            for screening in distress_payload.get("screenings", [])
+        ]
+
+>>>>>>> Stashed changes
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
             record_id = participant["record_id"]
@@ -106,11 +140,23 @@ class MockRedcapClient:
                 raise
 
             for session in wp6_payload.get("sessions", []):
+<<<<<<< Updated upstream
                 wp6_records.append({**session, "_entity": "wp6_sessions"})
+=======
+                wp6_records.append(
+                    {
+                        **session,
+                        "redcap_repeat_instrument": "wp6_session",
+                        "redcap_repeat_instance": str(session.get("session_number", "")),
+                        "_instrument": "wp6_session",
+                    }
+                )
+>>>>>>> Stashed changes
 
         instrument_records: list[dict[str, Any]] = []
         for record in survey_records:
             instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
+<<<<<<< Updated upstream
             instrument_records.append(
                 {**record, "_entity": "survey_responses", "_instrument": instrument}
             )
@@ -123,3 +169,8 @@ class MockRedcapClient:
             + referral_records
             + wp6_records
         )
+=======
+            instrument_records.append({**record, "_instrument": instrument})
+
+        return demographics + instrument_records + distress_records + wp6_records
+>>>>>>> Stashed changes

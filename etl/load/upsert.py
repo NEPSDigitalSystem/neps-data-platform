@@ -21,11 +21,19 @@ def _sql_type(field_type: str) -> str:
 
 
 def table_name(instrument_name: str) -> str:
+<<<<<<< Updated upstream
     return instrument_name
 
 
 def view_name(instrument_name: str) -> str:
     return f"v_{instrument_name}"
+=======
+    return f"raw_redcap_{instrument_name}"
+
+
+def view_name(instrument_name: str) -> str:
+    return f"v_redcap_{instrument_name}"
+>>>>>>> Stashed changes
 
 
 def persist_metadata(
@@ -56,6 +64,7 @@ def persist_metadata(
     )
 
 
+<<<<<<< Updated upstream
 def _insert_shape(
     instrument_name: str,
     columns: list[str],
@@ -73,6 +82,8 @@ def _insert_shape(
     return insert_columns, value_expressions
 
 
+=======
+>>>>>>> Stashed changes
 def upsert_rows(
     connection: Connection,
     instrument: InstrumentDefinition,
@@ -81,6 +92,7 @@ def upsert_rows(
     if not rows:
         return 0
 
+<<<<<<< Updated upstream
     field_order = [field.field_name for field in instrument.fields]
     columns = [col for col in field_order if any(col in row for row in rows)]
     rows = [{col: row.get(col) for col in columns} for row in rows]
@@ -109,12 +121,28 @@ def upsert_rows(
         conflict_action = f"DO UPDATE SET {', '.join(assignments)}"
     else:
         conflict_action = "DO NOTHING"
+=======
+    columns = list(rows[0].keys())
+    conflict_keys = [key for key in record_conflict_keys(instrument) if key in columns]
+    if not conflict_keys:
+        conflict_keys = ["record_id"]
+
+    update_columns = [col for col in columns if col not in conflict_keys]
+    col_sql = ", ".join(columns)
+    value_sql = ", ".join(f":{col}" for col in columns)
+    conflict_sql = ", ".join(conflict_keys)
+    update_sql = ", ".join(f"{col} = EXCLUDED.{col}" for col in update_columns)
+>>>>>>> Stashed changes
 
     sql = f"""
         INSERT INTO redcap.{table_name(instrument.instrument_name)} ({col_sql})
         VALUES ({value_sql})
         ON CONFLICT ({conflict_sql})
+<<<<<<< Updated upstream
         {conflict_action}
+=======
+        DO UPDATE SET {update_sql}
+>>>>>>> Stashed changes
     """
 
     for row in rows:
@@ -149,7 +177,12 @@ def load_instrument_records(
 def refresh_views(engine: Engine, metadata: MetadataModel) -> None:
     with engine.begin() as connection:
         for instrument in metadata.instruments:
+<<<<<<< Updated upstream
             if not instrument.fields:
+=======
+            cols = [field.field_name for field in instrument.fields]
+            if not cols:
+>>>>>>> Stashed changes
                 continue
 
             select_parts = []
