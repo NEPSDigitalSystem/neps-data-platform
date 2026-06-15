@@ -93,6 +93,9 @@ class MockRedcapClient:
         demographics = [
             {
                 **p,
+                "record_id": p.get("participant_id") or p.get("record_id"),
+                "redcap_event_name": p.get("redcap_event_name", "baseline_arm_1"),
+                "redcap_data_access_group": p.get("site", "").lower().replace(" ", "_") if p.get("site") else "",
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "demographics",
@@ -113,6 +116,8 @@ class MockRedcapClient:
         distress_records = [
             {
                 **s,
+                "record_id": s.get("participant_id") or s.get("record_id"),
+                "redcap_event_name": s.get("redcap_event_name", "baseline_arm_1"),
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "distress_screening",
@@ -123,7 +128,9 @@ class MockRedcapClient:
         # ── 4. WP6 sessions ───────────────────────────────────────────────
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
-            record_id = participant.get("record_id", "")
+            record_id = participant.get("participant_id") or participant.get("record_id", "")
+            if not record_id:
+                continue
             try:
                 wp6_payload = self._get(f"/api/wp6-sessions/{record_id}")
             except requests.HTTPError as exc:
@@ -135,6 +142,8 @@ class MockRedcapClient:
                 wp6_records.append(
                     {
                         **session,
+                        "record_id": session.get("participant_id") or session.get("record_id"),
+                        "redcap_event_name": session.get("redcap_event_name", "baseline_arm_1"),
                         "redcap_repeat_instrument": "wp6_session",
                         "redcap_repeat_instance": str(session.get("session_number", "")),
                         "_instrument": "wp6_session",
