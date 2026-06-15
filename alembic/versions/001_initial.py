@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-"""Initial control tables and normalized REDCap sync tables.
-=======
 """Initial control tables and raw landing tables.
->>>>>>> Stashed changes
 
 Revision ID: 001_initial
 Revises:
@@ -20,10 +16,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-<<<<<<< Updated upstream
-    op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
-=======
->>>>>>> Stashed changes
     op.execute("CREATE SCHEMA IF NOT EXISTS redcap")
 
     op.execute(
@@ -71,48 +63,13 @@ def upgrade() -> None:
 
     op.execute(
         """
-<<<<<<< Updated upstream
-        CREATE TABLE IF NOT EXISTS redcap.participants (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            record_id TEXT NOT NULL UNIQUE,
-=======
         CREATE TABLE IF NOT EXISTS redcap.raw_redcap_demographics (
             record_id TEXT NOT NULL,
-            redcap_event_name TEXT,
->>>>>>> Stashed changes
+            redcap_event_name TEXT NOT NULL DEFAULT '',
             country TEXT,
             site TEXT,
             school TEXT,
             age INTEGER,
-<<<<<<< Updated upstream
-            gender TEXT,
-            grade_level TEXT,
-            enrollment_date DATE,
-            phone_contact TEXT,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-        """
-    )
-
-    op.execute(
-        """
-        CREATE TABLE IF NOT EXISTS redcap.consent_records (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            participant_id UUID NOT NULL REFERENCES redcap.participants(id),
-            record_id TEXT NOT NULL REFERENCES redcap.participants(record_id),
-            consent_date DATE,
-            consent_version TEXT,
-            consent_status TEXT,
-            guardian_consent TEXT,
-            assent_status TEXT,
-            consent_withdrawn TEXT,
-            withdrawal_reason TEXT,
-            re_consent_required TEXT,
-            re_consent_date DATE,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (record_id)
-=======
             date_of_birth DATE,
             gender TEXT,
             grade_level TEXT,
@@ -125,34 +82,15 @@ def upgrade() -> None:
             _etl_run_id UUID,
             _source_mode TEXT,
             PRIMARY KEY (record_id, redcap_event_name)
->>>>>>> Stashed changes
         )
         """
     )
 
     op.execute(
         """
-<<<<<<< Updated upstream
-        CREATE TABLE IF NOT EXISTS redcap.survey_responses (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            record_id TEXT NOT NULL REFERENCES redcap.participants(record_id),
-            month INTEGER NOT NULL,
-            survey_date DATE,
-            survey_complete TEXT,
-            perceived_stress_score DOUBLE PRECISION,
-            anxiety_score DOUBLE PRECISION,
-            depression_score DOUBLE PRECISION,
-            suicidality_screening TEXT,
-            risk_flag TEXT,
-            resilience_score DOUBLE PRECISION,
-            social_support DOUBLE PRECISION,
-            internalised_stigma DOUBLE PRECISION,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (record_id, month)
-=======
         CREATE TABLE IF NOT EXISTS redcap.raw_redcap_monthly_self_report (
             record_id TEXT NOT NULL,
-            redcap_event_name TEXT,
+            redcap_event_name TEXT NOT NULL DEFAULT '',
             month INTEGER,
             survey_date DATE,
             survey_complete TEXT,
@@ -172,28 +110,21 @@ def upgrade() -> None:
             loneliness_score DOUBLE PRECISION,
             risk_flag TEXT,
             requires_follow_up TEXT,
-            redcap_repeat_instrument TEXT,
-            redcap_repeat_instance TEXT,
+            redcap_repeat_instrument TEXT NOT NULL DEFAULT '',
+            redcap_repeat_instance TEXT NOT NULL DEFAULT '',
             _synced_at TIMESTAMPTZ,
             _etl_run_id UUID,
             _source_mode TEXT,
             PRIMARY KEY (record_id, redcap_event_name, redcap_repeat_instrument, redcap_repeat_instance)
->>>>>>> Stashed changes
         )
         """
     )
 
     op.execute(
         """
-<<<<<<< Updated upstream
-        CREATE TABLE IF NOT EXISTS redcap.distress_screenings (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            record_id TEXT NOT NULL REFERENCES redcap.participants(record_id),
-            screening_date DATE NOT NULL,
-=======
         CREATE TABLE IF NOT EXISTS redcap.raw_redcap_comprehensive_wave (
             record_id TEXT NOT NULL,
-            redcap_event_name TEXT,
+            redcap_event_name TEXT NOT NULL DEFAULT '',
             wave_type TEXT,
             survey_complete TEXT,
             examination_stress DOUBLE PRECISION,
@@ -228,8 +159,8 @@ def upgrade() -> None:
             community_connectedness DOUBLE PRECISION,
             religious_support DOUBLE PRECISION,
             school_belonging DOUBLE PRECISION,
-            redcap_repeat_instrument TEXT,
-            redcap_repeat_instance TEXT,
+            redcap_repeat_instrument TEXT NOT NULL DEFAULT '',
+            redcap_repeat_instance TEXT NOT NULL DEFAULT '',
             _synced_at TIMESTAMPTZ,
             _etl_run_id UUID,
             _source_mode TEXT,
@@ -242,21 +173,11 @@ def upgrade() -> None:
         """
         CREATE TABLE IF NOT EXISTS redcap.raw_redcap_distress_screening (
             record_id TEXT NOT NULL,
-            screening_date DATE,
->>>>>>> Stashed changes
+            screening_date DATE NOT NULL,
             distress_score DOUBLE PRECISION,
             suicidality_flag TEXT,
             severity TEXT,
             trigger_form TEXT,
-<<<<<<< Updated upstream
-            assigned_responder TEXT,
-            action_taken TEXT,
-            referral_made TEXT,
-            welfare_check_due DATE,
-            resolution_status TEXT,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (record_id, screening_date)
-=======
             trigger_item TEXT,
             assigned_responder TEXT,
             action_taken TEXT,
@@ -268,60 +189,29 @@ def upgrade() -> None:
             _etl_run_id UUID,
             _source_mode TEXT,
             PRIMARY KEY (record_id, screening_date)
->>>>>>> Stashed changes
         )
         """
     )
 
     op.execute(
         """
-<<<<<<< Updated upstream
-        CREATE TABLE IF NOT EXISTS redcap.referrals (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            referral_id TEXT NOT NULL UNIQUE,
-            record_id TEXT NOT NULL REFERENCES redcap.participants(record_id),
-            initiation_date DATE,
-            destination TEXT,
-            status TEXT,
-            notes TEXT,
-            follow_up_date DATE,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-        """
-    )
-
-    op.execute(
-        """
-        CREATE TABLE IF NOT EXISTS redcap.wp6_sessions (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            record_id TEXT NOT NULL REFERENCES redcap.participants(record_id),
-            session_number INTEGER NOT NULL,
-=======
         CREATE TABLE IF NOT EXISTS redcap.raw_redcap_wp6_session (
             record_id TEXT NOT NULL,
             session_number INTEGER,
->>>>>>> Stashed changes
             session_date DATE,
             attendance TEXT,
             engagement_level DOUBLE PRECISION,
             fidelity_score DOUBLE PRECISION,
-<<<<<<< Updated upstream
-            distress_pre DOUBLE PRECISION,
-            distress_post DOUBLE PRECISION,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            UNIQUE (record_id, session_number)
-=======
             satisfaction_score DOUBLE PRECISION,
             homework_completion TEXT,
             distress_pre DOUBLE PRECISION,
             distress_post DOUBLE PRECISION,
-            redcap_repeat_instrument TEXT,
-            redcap_repeat_instance TEXT,
+            redcap_repeat_instrument TEXT NOT NULL DEFAULT '',
+            redcap_repeat_instance TEXT NOT NULL DEFAULT '',
             _synced_at TIMESTAMPTZ,
             _etl_run_id UUID,
             _source_mode TEXT,
             PRIMARY KEY (record_id, redcap_repeat_instrument, redcap_repeat_instance)
->>>>>>> Stashed changes
         )
         """
     )

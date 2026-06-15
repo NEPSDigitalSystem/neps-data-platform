@@ -2,31 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
-<<<<<<< Updated upstream
-from etl.models.metadata import MetadataModel
-from etl.transform.mock_schema import get_backend_instruments
-=======
 from etl.models.metadata import FieldDefinition, InstrumentDefinition, MetadataModel
 from etl.transform.mock_schema import get_mock_instruments
->>>>>>> Stashed changes
 
 
 def normalize_metadata(raw: Any, *, source_mode: str) -> MetadataModel:
     if source_mode == "mock":
         if not isinstance(raw, dict):
             raise ValueError("Mock metadata must be a JSON object")
-<<<<<<< Updated upstream
-        return MetadataModel(
-            project_id=str(raw.get("project_id", "NEPS-2025")),
-            project_title=str(raw.get("project_title", "NEPS Digital")),
-            instruments=get_backend_instruments(),
-=======
         instruments = get_mock_instruments()
         return MetadataModel(
             project_id=str(raw.get("project_id", "NEPS-2025")),
             project_title=str(raw.get("project_title", "NEPS Digital")),
             instruments=instruments,
->>>>>>> Stashed changes
             events=list(raw.get("events", [])),
             raw=raw,
             source_mode="mock",
@@ -35,12 +23,6 @@ def normalize_metadata(raw: Any, *, source_mode: str) -> MetadataModel:
     if not isinstance(raw, list):
         raise ValueError("Production metadata must be a list of field definitions")
 
-<<<<<<< Updated upstream
-    return MetadataModel(
-        project_id="production",
-        project_title="REDCap Production Project",
-        instruments=get_backend_instruments(),
-=======
     instruments_map: dict[str, InstrumentDefinition] = {}
     for field_row in raw:
         form_name = str(field_row.get("form_name", "unknown"))
@@ -73,7 +55,6 @@ def normalize_metadata(raw: Any, *, source_mode: str) -> MetadataModel:
         project_id="production",
         project_title="REDCap Production Project",
         instruments=list(instruments_map.values()),
->>>>>>> Stashed changes
         events=[],
         raw={"fields": raw},
         source_mode="production",

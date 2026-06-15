@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-<<<<<<< Updated upstream
-=======
-import time
->>>>>>> Stashed changes
 from typing import Any
 
 import requests
@@ -58,49 +54,6 @@ class MockRedcapClient:
         if events:
             params["events"] = events
 
-<<<<<<< Updated upstream
-        survey_payload = self._get("/export/records", params=params)
-        survey_records = survey_payload if isinstance(survey_payload, list) else []
-
-        participants_payload = self._get("/participants", params={"limit": 500})
-        participants = participants_payload.get("data", [])
-        participant_records = [
-            {**participant, "_entity": "participants", "_instrument": "demographics"}
-            for participant in participants
-        ]
-
-        consent_records: list[dict[str, Any]] = []
-        for participant in participants:
-            record_id = participant["record_id"]
-            try:
-                consent = self._get(f"/participants/{record_id}/consent")
-            except requests.HTTPError as exc:
-                if exc.response is not None and exc.response.status_code == 404:
-                    continue
-                raise
-            if isinstance(consent, dict) and "error" not in consent:
-                consent_records.append({**consent, "_entity": "consent_records"})
-
-        distress_payload = self._get("/screenings/distress")
-        distress_records = [
-            {**screening, "_entity": "distress_screenings"}
-            for screening in distress_payload.get("screenings", [])
-        ]
-
-        referral_records: list[dict[str, Any]] = []
-        try:
-            referrals_payload = self._get("/referrals")
-        except requests.HTTPError as exc:
-            if exc.response is None or exc.response.status_code != 404:
-                raise
-        else:
-            referrals = referrals_payload.get("referrals", referrals_payload.get("data", []))
-            referral_records = [
-                {**referral, "_entity": "referrals"}
-                for referral in referrals
-            ]
-
-=======
         survey_records = self._get("/export/records", params=params)
         if not isinstance(survey_records, list):
             survey_records = []
@@ -128,7 +81,6 @@ class MockRedcapClient:
             for screening in distress_payload.get("screenings", [])
         ]
 
->>>>>>> Stashed changes
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
             record_id = participant["record_id"]
@@ -140,9 +92,6 @@ class MockRedcapClient:
                 raise
 
             for session in wp6_payload.get("sessions", []):
-<<<<<<< Updated upstream
-                wp6_records.append({**session, "_entity": "wp6_sessions"})
-=======
                 wp6_records.append(
                     {
                         **session,
@@ -151,26 +100,10 @@ class MockRedcapClient:
                         "_instrument": "wp6_session",
                     }
                 )
->>>>>>> Stashed changes
 
         instrument_records: list[dict[str, Any]] = []
         for record in survey_records:
             instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
-<<<<<<< Updated upstream
-            instrument_records.append(
-                {**record, "_entity": "survey_responses", "_instrument": instrument}
-            )
-
-        return (
-            participant_records
-            + consent_records
-            + instrument_records
-            + distress_records
-            + referral_records
-            + wp6_records
-        )
-=======
             instrument_records.append({**record, "_instrument": instrument})
 
         return demographics + instrument_records + distress_records + wp6_records
->>>>>>> Stashed changes
