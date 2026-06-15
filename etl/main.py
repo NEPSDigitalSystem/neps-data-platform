@@ -37,6 +37,9 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument("--dry-run", action="store_true", help="Extract metadata without loading records")
     sync_parser.set_defaults(func=cmd_sync)
 
+    analyze_parser = subparsers.add_parser("analyze", help="Run data analysis and aggregations")
+    analyze_parser.set_defaults(func=cmd_analyze)
+
     return parser
 
 
@@ -69,6 +72,17 @@ def cmd_sync(args: argparse.Namespace) -> int:
     logger.info("sync_complete", **result)
     print(result)
     return 0 if result.get("status") in {"success", "dry_run"} else 1
+
+
+def cmd_analyze(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    from etl.analytics.distress_trends import analyze_distress_trends
+    try:
+        analyze_distress_trends(settings)
+        return 0
+    except Exception as e:
+        logger.error("analysis_failed", error=str(e))
+        return 1
 
 
 def main() -> None:

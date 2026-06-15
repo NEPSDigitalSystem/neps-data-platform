@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import requests
@@ -39,6 +40,45 @@ class MockRedcapClient:
         response = self._session.get(url, params=params, timeout=self._timeout)
         response.raise_for_status()
         return response.json()
+
+    def _parse_date(self, date_str: str | None) -> datetime | None:
+        """Parse an ISO 8601 date string. Returns None if parsing fails."""
+        if not date_str:
+            return None
+        try:
+            # Handle ISO 8601 format: 2024-01-15, 2024-01-15T10:30:00, etc.
+            if "T" in date_str:
+                return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+            else:
+                return datetime.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            return None
+
+    def _should_include_record(self, record: dict[str, Any], watermark: str | None) -> bool:
+        """Check if a record should be included based on the watermark date."""
+        if not watermark:
+            return True
+
+        watermark_dt = self._parse_date(watermark)
+        if not watermark_dt:
+            logger.warning("invalid_watermark_date", watermark=watermark)
+            return True  # Include record if we can't parse the watermark
+
+        # Check common date fields in order of priority
+        date_candidates = [
+            record.get("survey_date"),
+            record.get("updated_at"),
+            record.get("created_at"),
+            record.get("timestamp"),
+            record.get("date_created"),
+        ]
+
+        for date_value in date_candidates:
+            record_dt = self._parse_date(date_value)
+            if record_dt and record_dt >= watermark_dt:
+                return True
+
+        return False
 
     def health_check(self) -> dict[str, Any]:
         return self._get("/health")
@@ -81,12 +121,13 @@ class MockRedcapClient:
         events: list[str] | None = None,
         date_range_begin: str | None = None,
     ) -> list[dict[str, Any]]:
-        if date_range_begin:
-            logger.warning(
-                "mock_incremental_not_supported",
-                date_range_begin=date_range_begin,
-            )
-
+        """Export records from all mock endpoints, optionally filtered by date_range_begin.
+        
+        Args:
+            fields: Unused (for API compatibility)
+            events: Unused (for API compatibility)
+            date_range_begin: ISO 8601 watermark date. Only returns records modified after this date.
+        """
         # ── 1. Demographics ──────────────────────────────────────────────
         participants_payload = self._get("/api/participants", params={"limit": 500})
         participants = participants_payload.get("data", [])
@@ -101,6 +142,7 @@ class MockRedcapClient:
                 "_instrument": "demographics",
             }
             for p in participants
+            if self._should_include_record(p, date_range_begin)
         ]
 
         # ── 2. Monthly self-reports + comprehensive waves ─────────────────
@@ -108,8 +150,9 @@ class MockRedcapClient:
         instrument_records: list[dict[str, Any]] = []
         if isinstance(monthly_payload, list):
             for record in monthly_payload:
-                instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
-                instrument_records.append({**record, "_instrument": instrument})
+                if self._should_include_record(record, date_range_begin):
+                    instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
+                    instrument_records.append({**record, "_instrument": instrument})
 
         # ── 3. Distress screenings ────────────────────────────────────────
         distress_payload = self._get("/api/distress-screenings")
@@ -123,6 +166,7 @@ class MockRedcapClient:
                 "_instrument": "distress_screening",
             }
             for s in distress_payload.get("screenings", [])
+            if self._should_include_record(s, date_range_begin)
         ]
 
         # ── 4. WP6 sessions ───────────────────────────────────────────────
@@ -139,15 +183,25 @@ class MockRedcapClient:
                 raise
 
             for session in wp6_payload.get("sessions", []):
-                wp6_records.append(
-                    {
-                        **session,
-                        "record_id": session.get("participant_id") or session.get("record_id"),
-                        "redcap_event_name": session.get("redcap_event_name", "baseline_arm_1"),
-                        "redcap_repeat_instrument": "wp6_session",
-                        "redcap_repeat_instance": str(session.get("session_number", "")),
-                        "_instrument": "wp6_session",
-                    }
-                )
+                if self._should_include_record(session, date_range_begin):
+                    wp6_records.append(
+                        {
+                            **session,
+                            "record_id": session.get("participant_id") or session.get("record_id"),
+                            "redcap_event_name": session.get("redcap_event_name", "baseline_arm_1"),
+                            "redcap_repeat_instrument": "wp6_session",
+                            "redcap_repeat_instance": str(session.get("session_number", "")),
+                            "_instrument": "wp6_session",
+                        }
+                    )
+
+        logger.info(
+            "records_exported",
+            watermark=date_range_begin,
+            demographics=len(demographics),
+            monthly_reports=len(instrument_records),
+            distress_screenings=len(distress_records),
+            wp6_sessions=len(wp6_records),
+        )
 
         return demographics + instrument_records + distress_records + wp6_records
