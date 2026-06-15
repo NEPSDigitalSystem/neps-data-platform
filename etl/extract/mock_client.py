@@ -11,16 +11,28 @@ from etl.models.metadata import MetadataModel
 
 logger = structlog.get_logger(__name__)
 
+# The hosted mock REDCap service (https://mock-redcap-service.onrender.com)
+# uses /api/* paths without a /redcap/ sub-prefix. All paths below match the
+# actual Render deployment. When real REDCap is available, swap to the
+# ProductionRedcapClient instead.
+
 
 class MockRedcapClient:
-    """HTTP adapter for mock REDCap API served by neps-backend."""
+    """HTTP adapter for the NEPS mock REDCap API hosted on Render.
+
+    Base URL example: https://mock-redcap-service.onrender.com
+    All endpoints are at /api/<resource>.
+    """
 
     source_mode = "mock"
 
     def __init__(self, settings: Settings) -> None:
+        # Strip trailing slash; endpoints will be appended as /api/<resource>
         self._base_url = settings.redcap_api_url.rstrip("/")
         self._timeout = settings.http_timeout_seconds
         self._session = requests.Session()
+        # Render free-tier may be asleep — allow a generous timeout
+        self._session.headers.update({"Accept": "application/json"})
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"
@@ -32,7 +44,34 @@ class MockRedcapClient:
         return self._get("/health")
 
     def export_metadata(self) -> MetadataModel:
-        raw = self._get("/export/metadata")
+        """
+        The Render mock does not expose /export/metadata.
+        We call /api/stats to wake the service and build metadata
+        from the known instrument schema.
+        """
+        # Wake the service and confirm it is up
+        self._get("/api/stats")
+
+        # Construct a synthetic metadata payload that matches the mock schema
+        raw = {
+            "project_id": "NEPS-2025",
+            "project_title": "NEPS Digital - Youth Mental Health Observatory",
+            "events": [
+                {"event_name": "baseline_arm_1", "arm_num": 1, "day_offset": 0},
+                {"event_name": "month_1_arm_1", "arm_num": 1, "day_offset": 30},
+                {"event_name": "month_6_arm_1", "arm_num": 1, "day_offset": 180},
+                {"event_name": "month_12_arm_1", "arm_num": 1, "day_offset": 365},
+                {"event_name": "month_18_arm_1", "arm_num": 1, "day_offset": 545},
+                {"event_name": "month_24_arm_1", "arm_num": 1, "day_offset": 730},
+            ],
+            "instruments": [
+                {"instrument_name": "demographics", "instrument_label": "Demographics"},
+                {"instrument_name": "monthly_self_report", "instrument_label": "Monthly Self-Report"},
+                {"instrument_name": "comprehensive_wave", "instrument_label": "Comprehensive Survey Wave"},
+                {"instrument_name": "distress_screening", "instrument_label": "Distress Screening"},
+                {"instrument_name": "wp6_session", "instrument_label": "WP6 Session Record"},
+            ],
+        }
         return normalize_metadata(raw, source_mode="mock")
 
     def export_records(
@@ -48,44 +87,45 @@ class MockRedcapClient:
                 date_range_begin=date_range_begin,
             )
 
-        params: dict[str, Any] = {"format": "json"}
-        if fields:
-            params["fields"] = fields
-        if events:
-            params["events"] = events
-
-        survey_records = self._get("/export/records", params=params)
-        if not isinstance(survey_records, list):
-            survey_records = []
-
-        participants_payload = self._get("/participants", params={"limit": 500})
+        # ── 1. Demographics ──────────────────────────────────────────────
+        participants_payload = self._get("/api/participants", params={"limit": 500})
         participants = participants_payload.get("data", [])
         demographics = [
             {
-                **participant,
+                **p,
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "demographics",
             }
-            for participant in participants
+            for p in participants
         ]
 
-        distress_payload = self._get("/screenings/distress")
+        # ── 2. Monthly self-reports + comprehensive waves ─────────────────
+        monthly_payload = self._get("/api/export/records", params={"format": "json"})
+        instrument_records: list[dict[str, Any]] = []
+        if isinstance(monthly_payload, list):
+            for record in monthly_payload:
+                instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
+                instrument_records.append({**record, "_instrument": instrument})
+
+        # ── 3. Distress screenings ────────────────────────────────────────
+        distress_payload = self._get("/api/distress-screenings")
         distress_records = [
             {
-                **screening,
+                **s,
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "distress_screening",
             }
-            for screening in distress_payload.get("screenings", [])
+            for s in distress_payload.get("screenings", [])
         ]
 
+        # ── 4. WP6 sessions ───────────────────────────────────────────────
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
-            record_id = participant["record_id"]
+            record_id = participant.get("record_id", "")
             try:
-                wp6_payload = self._get(f"/wp6/sessions/{record_id}")
+                wp6_payload = self._get(f"/api/wp6-sessions/{record_id}")
             except requests.HTTPError as exc:
                 if exc.response is not None and exc.response.status_code == 404:
                     continue
@@ -100,10 +140,5 @@ class MockRedcapClient:
                         "_instrument": "wp6_session",
                     }
                 )
-
-        instrument_records: list[dict[str, Any]] = []
-        for record in survey_records:
-            instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
-            instrument_records.append({**record, "_instrument": instrument})
 
         return demographics + instrument_records + distress_records + wp6_records
