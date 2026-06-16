@@ -45,7 +45,7 @@ class SyncOrchestrator:
         dry_run: bool = False,
     ) -> dict[str, object]:
         run_logger = RunLogger(self._engine)
-        sync_type = "full" if full or self._settings.redcap_mock_enabled else "incremental"
+        sync_type = "full" if full else "incremental"
         project_id = self._settings.redcap_project_id
 
         run_logger.start(
@@ -67,7 +67,7 @@ class SyncOrchestrator:
                 }
 
             if not metadata_only:
-                watermark = None if full or self._settings.redcap_mock_enabled else self._state.get_watermark(
+                watermark = None if full else self._state.get_watermark(
                     project_id=project_id,
                     entity_name="records",
                 )

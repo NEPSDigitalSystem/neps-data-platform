@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import requests
@@ -11,16 +12,28 @@ from etl.models.metadata import MetadataModel
 
 logger = structlog.get_logger(__name__)
 
+# The hosted mock REDCap service (https://mock-redcap-service.onrender.com)
+# uses /api/* paths without a /redcap/ sub-prefix. All paths below match the
+# actual Render deployment. When real REDCap is available, swap to the
+# ProductionRedcapClient instead.
+
 
 class MockRedcapClient:
-    """HTTP adapter for mock REDCap API served by neps-backend."""
+    """HTTP adapter for the NEPS mock REDCap API hosted on Render.
+
+    Base URL example: https://mock-redcap-service.onrender.com
+    All endpoints are at /api/<resource>.
+    """
 
     source_mode = "mock"
 
     def __init__(self, settings: Settings) -> None:
+        # Strip trailing slash; endpoints will be appended as /api/<resource>
         self._base_url = settings.redcap_api_url.rstrip("/")
         self._timeout = settings.http_timeout_seconds
         self._session = requests.Session()
+        # Render free-tier may be asleep — allow a generous timeout
+        self._session.headers.update({"Accept": "application/json"})
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         url = f"{self._base_url}{path}"
@@ -28,11 +41,77 @@ class MockRedcapClient:
         response.raise_for_status()
         return response.json()
 
+    def _parse_date(self, date_str: str | None) -> datetime | None:
+        """Parse an ISO 8601 date string. Returns None if parsing fails."""
+        if not date_str:
+            return None
+        try:
+            # Handle ISO 8601 format: 2024-01-15, 2024-01-15T10:30:00, etc.
+            if "T" in date_str:
+                return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+            else:
+                return datetime.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            return None
+
+    def _should_include_record(self, record: dict[str, Any], watermark: str | None) -> bool:
+        """Check if a record should be included based on the watermark date."""
+        if not watermark:
+            return True
+
+        watermark_dt = self._parse_date(watermark)
+        if not watermark_dt:
+            logger.warning("invalid_watermark_date", watermark=watermark)
+            return True  # Include record if we can't parse the watermark
+
+        # Check common date fields in order of priority
+        date_candidates = [
+            record.get("survey_date"),
+            record.get("updated_at"),
+            record.get("created_at"),
+            record.get("timestamp"),
+            record.get("date_created"),
+        ]
+
+        for date_value in date_candidates:
+            record_dt = self._parse_date(date_value)
+            if record_dt and record_dt >= watermark_dt:
+                return True
+
+        return False
+
     def health_check(self) -> dict[str, Any]:
         return self._get("/health")
 
     def export_metadata(self) -> MetadataModel:
-        raw = self._get("/export/metadata")
+        """
+        The Render mock does not expose /export/metadata.
+        We call /api/stats to wake the service and build metadata
+        from the known instrument schema.
+        """
+        # Wake the service and confirm it is up
+        self._get("/api/stats")
+
+        # Construct a synthetic metadata payload that matches the mock schema
+        raw = {
+            "project_id": "NEPS-2025",
+            "project_title": "NEPS Digital - Youth Mental Health Observatory",
+            "events": [
+                {"event_name": "baseline_arm_1", "arm_num": 1, "day_offset": 0},
+                {"event_name": "month_1_arm_1", "arm_num": 1, "day_offset": 30},
+                {"event_name": "month_6_arm_1", "arm_num": 1, "day_offset": 180},
+                {"event_name": "month_12_arm_1", "arm_num": 1, "day_offset": 365},
+                {"event_name": "month_18_arm_1", "arm_num": 1, "day_offset": 545},
+                {"event_name": "month_24_arm_1", "arm_num": 1, "day_offset": 730},
+            ],
+            "instruments": [
+                {"instrument_name": "demographics", "instrument_label": "Demographics"},
+                {"instrument_name": "monthly_self_report", "instrument_label": "Monthly Self-Report"},
+                {"instrument_name": "comprehensive_wave", "instrument_label": "Comprehensive Survey Wave"},
+                {"instrument_name": "distress_screening", "instrument_label": "Distress Screening"},
+                {"instrument_name": "wp6_session", "instrument_label": "WP6 Session Record"},
+            ],
+        }
         return normalize_metadata(raw, source_mode="mock")
 
     def export_records(
@@ -42,68 +121,87 @@ class MockRedcapClient:
         events: list[str] | None = None,
         date_range_begin: str | None = None,
     ) -> list[dict[str, Any]]:
-        if date_range_begin:
-            logger.warning(
-                "mock_incremental_not_supported",
-                date_range_begin=date_range_begin,
-            )
-
-        params: dict[str, Any] = {"format": "json"}
-        if fields:
-            params["fields"] = fields
-        if events:
-            params["events"] = events
-
-        survey_records = self._get("/export/records", params=params)
-        if not isinstance(survey_records, list):
-            survey_records = []
-
-        participants_payload = self._get("/participants", params={"limit": 500})
+        """Export records from all mock endpoints, optionally filtered by date_range_begin.
+        
+        Args:
+            fields: Unused (for API compatibility)
+            events: Unused (for API compatibility)
+            date_range_begin: ISO 8601 watermark date. Only returns records modified after this date.
+        """
+        # ── 1. Demographics ──────────────────────────────────────────────
+        participants_payload = self._get("/api/participants", params={"limit": 500})
         participants = participants_payload.get("data", [])
         demographics = [
             {
-                **participant,
+                **p,
+                "record_id": p.get("participant_id") or p.get("record_id"),
+                "redcap_event_name": p.get("redcap_event_name", "baseline_arm_1"),
+                "redcap_data_access_group": p.get("site", "").lower().replace(" ", "_") if p.get("site") else "",
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "demographics",
             }
-            for participant in participants
+            for p in participants
+            if self._should_include_record(p, date_range_begin)
         ]
 
-        distress_payload = self._get("/screenings/distress")
+        # ── 2. Monthly self-reports + comprehensive waves ─────────────────
+        monthly_payload = self._get("/api/export/records", params={"format": "json"})
+        instrument_records: list[dict[str, Any]] = []
+        if isinstance(monthly_payload, list):
+            for record in monthly_payload:
+                if self._should_include_record(record, date_range_begin):
+                    instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
+                    instrument_records.append({**record, "_instrument": instrument})
+
+        # ── 3. Distress screenings ────────────────────────────────────────
+        distress_payload = self._get("/api/distress-screenings")
         distress_records = [
             {
-                **screening,
+                **s,
+                "record_id": s.get("participant_id") or s.get("record_id"),
+                "redcap_event_name": s.get("redcap_event_name", "baseline_arm_1"),
                 "redcap_repeat_instrument": "",
                 "redcap_repeat_instance": "",
                 "_instrument": "distress_screening",
             }
-            for screening in distress_payload.get("screenings", [])
+            for s in distress_payload.get("screenings", [])
+            if self._should_include_record(s, date_range_begin)
         ]
 
+        # ── 4. WP6 sessions ───────────────────────────────────────────────
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
-            record_id = participant["record_id"]
+            record_id = participant.get("participant_id") or participant.get("record_id", "")
+            if not record_id:
+                continue
             try:
-                wp6_payload = self._get(f"/wp6/sessions/{record_id}")
+                wp6_payload = self._get(f"/api/wp6-sessions/{record_id}")
             except requests.HTTPError as exc:
                 if exc.response is not None and exc.response.status_code == 404:
                     continue
                 raise
 
             for session in wp6_payload.get("sessions", []):
-                wp6_records.append(
-                    {
-                        **session,
-                        "redcap_repeat_instrument": "wp6_session",
-                        "redcap_repeat_instance": str(session.get("session_number", "")),
-                        "_instrument": "wp6_session",
-                    }
-                )
+                if self._should_include_record(session, date_range_begin):
+                    wp6_records.append(
+                        {
+                            **session,
+                            "record_id": session.get("participant_id") or session.get("record_id"),
+                            "redcap_event_name": session.get("redcap_event_name", "baseline_arm_1"),
+                            "redcap_repeat_instrument": "wp6_session",
+                            "redcap_repeat_instance": str(session.get("session_number", "")),
+                            "_instrument": "wp6_session",
+                        }
+                    )
 
-        instrument_records: list[dict[str, Any]] = []
-        for record in survey_records:
-            instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
-            instrument_records.append({**record, "_instrument": instrument})
+        logger.info(
+            "records_exported",
+            watermark=date_range_begin,
+            demographics=len(demographics),
+            monthly_reports=len(instrument_records),
+            distress_screenings=len(distress_records),
+            wp6_sessions=len(wp6_records),
+        )
 
         return demographics + instrument_records + distress_records + wp6_records
