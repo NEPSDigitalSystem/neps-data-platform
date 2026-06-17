@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-<<<<<<< Updated upstream
-=======
-import time
->>>>>>> Stashed changes
-from typing import Any
+from datetime import date, datetime, time, timezone
+from typing import Any, Iterable
 
 import requests
 import structlog
@@ -17,7 +14,7 @@ logger = structlog.get_logger(__name__)
 
 
 class MockRedcapClient:
-    """HTTP adapter for mock REDCap API served by neps-backend."""
+    """HTTP adapter for mock REDCap API served by neps-backend or Render."""
 
     source_mode = "mock"
 
@@ -46,27 +43,33 @@ class MockRedcapClient:
         events: list[str] | None = None,
         date_range_begin: str | None = None,
     ) -> list[dict[str, Any]]:
-        if date_range_begin:
-            logger.warning(
-                "mock_incremental_not_supported",
-                date_range_begin=date_range_begin,
-            )
-
         params: dict[str, Any] = {"format": "json"}
         if fields:
             params["fields"] = fields
         if events:
             params["events"] = events
+        if date_range_begin:
+            params["date_range_begin"] = date_range_begin
+            params["dateRangeBegin"] = date_range_begin
 
-<<<<<<< Updated upstream
         survey_payload = self._get("/export/records", params=params)
         survey_records = survey_payload if isinstance(survey_payload, list) else []
+        survey_records = _filter_since(
+            survey_records,
+            date_range_begin,
+            ("updated_at", "created_at", "survey_date"),
+        )
 
-        participants_payload = self._get("/participants", params={"limit": 500})
+        participant_params = _with_watermark({"limit": 500}, date_range_begin)
+        participants_payload = self._get("/participants", params=participant_params)
         participants = participants_payload.get("data", [])
         participant_records = [
             {**participant, "_entity": "participants", "_instrument": "demographics"}
-            for participant in participants
+            for participant in _filter_since(
+                participants,
+                date_range_begin,
+                ("updated_at", "created_at", "enrollment_date"),
+            )
         ]
 
         consent_records: list[dict[str, Any]] = []
@@ -78,18 +81,27 @@ class MockRedcapClient:
                 if exc.response is not None and exc.response.status_code == 404:
                     continue
                 raise
-            if isinstance(consent, dict) and "error" not in consent:
+            if not isinstance(consent, dict) or "error" in consent:
+                continue
+            if _is_since(consent, date_range_begin, ("updated_at", "created_at", "re_consent_date", "consent_date")):
                 consent_records.append({**consent, "_entity": "consent_records"})
 
-        distress_payload = self._get("/screenings/distress")
+        distress_payload = self._get(
+            "/screenings/distress",
+            params=_with_watermark({}, date_range_begin),
+        )
         distress_records = [
             {**screening, "_entity": "distress_screenings"}
-            for screening in distress_payload.get("screenings", [])
+            for screening in _filter_since(
+                distress_payload.get("screenings", []),
+                date_range_begin,
+                ("updated_at", "created_at", "screening_date"),
+            )
         ]
 
         referral_records: list[dict[str, Any]] = []
         try:
-            referrals_payload = self._get("/referrals")
+            referrals_payload = self._get("/referrals", params=_with_watermark({}, date_range_begin))
         except requests.HTTPError as exc:
             if exc.response is None or exc.response.status_code != 404:
                 raise
@@ -97,38 +109,13 @@ class MockRedcapClient:
             referrals = referrals_payload.get("referrals", referrals_payload.get("data", []))
             referral_records = [
                 {**referral, "_entity": "referrals"}
-                for referral in referrals
+                for referral in _filter_since(
+                    referrals,
+                    date_range_begin,
+                    ("updated_at", "created_at", "initiation_date", "follow_up_date"),
+                )
             ]
 
-=======
-        survey_records = self._get("/export/records", params=params)
-        if not isinstance(survey_records, list):
-            survey_records = []
-
-        participants_payload = self._get("/participants", params={"limit": 500})
-        participants = participants_payload.get("data", [])
-        demographics = [
-            {
-                **participant,
-                "redcap_repeat_instrument": "",
-                "redcap_repeat_instance": "",
-                "_instrument": "demographics",
-            }
-            for participant in participants
-        ]
-
-        distress_payload = self._get("/screenings/distress")
-        distress_records = [
-            {
-                **screening,
-                "redcap_repeat_instrument": "",
-                "redcap_repeat_instance": "",
-                "_instrument": "distress_screening",
-            }
-            for screening in distress_payload.get("screenings", [])
-        ]
-
->>>>>>> Stashed changes
         wp6_records: list[dict[str, Any]] = []
         for participant in participants:
             record_id = participant["record_id"]
@@ -139,24 +126,16 @@ class MockRedcapClient:
                     continue
                 raise
 
-            for session in wp6_payload.get("sessions", []):
-<<<<<<< Updated upstream
+            for session in _filter_since(
+                wp6_payload.get("sessions", []),
+                date_range_begin,
+                ("updated_at", "created_at", "session_date"),
+            ):
                 wp6_records.append({**session, "_entity": "wp6_sessions"})
-=======
-                wp6_records.append(
-                    {
-                        **session,
-                        "redcap_repeat_instrument": "wp6_session",
-                        "redcap_repeat_instance": str(session.get("session_number", "")),
-                        "_instrument": "wp6_session",
-                    }
-                )
->>>>>>> Stashed changes
 
         instrument_records: list[dict[str, Any]] = []
         for record in survey_records:
             instrument = record.get("redcap_repeat_instrument") or "monthly_self_report"
-<<<<<<< Updated upstream
             instrument_records.append(
                 {**record, "_entity": "survey_responses", "_instrument": instrument}
             )
@@ -169,8 +148,77 @@ class MockRedcapClient:
             + referral_records
             + wp6_records
         )
-=======
-            instrument_records.append({**record, "_instrument": instrument})
 
-        return demographics + instrument_records + distress_records + wp6_records
->>>>>>> Stashed changes
+
+def _with_watermark(params: dict[str, Any], date_range_begin: str | None) -> dict[str, Any]:
+    if not date_range_begin:
+        return params
+    return {
+        **params,
+        "date_range_begin": date_range_begin,
+        "dateRangeBegin": date_range_begin,
+    }
+
+
+def _filter_since(
+    records: Iterable[dict[str, Any]],
+    date_range_begin: str | None,
+    date_fields: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    return [
+        record
+        for record in records
+        if _is_since(record, date_range_begin, date_fields)
+    ]
+
+
+def _is_since(
+    record: dict[str, Any],
+    date_range_begin: str | None,
+    date_fields: tuple[str, ...],
+) -> bool:
+    watermark = _parse_datetime(date_range_begin)
+    if watermark is None:
+        return True
+
+    record_time = _record_datetime(record, date_fields)
+    if record_time is None:
+        return False
+
+    return record_time >= watermark
+
+
+def _record_datetime(record: dict[str, Any], date_fields: tuple[str, ...]) -> datetime | None:
+    parsed = [
+        value
+        for field in date_fields
+        if (value := _parse_datetime(record.get(field))) is not None
+    ]
+    if not parsed:
+        return None
+    return max(parsed)
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    if value in (None, ""):
+        return None
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, time.min)
+    elif isinstance(value, str):
+        normalized = value.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except ValueError:
+            try:
+                parsed = datetime.combine(date.fromisoformat(value[:10]), time.min)
+            except ValueError:
+                return None
+    else:
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)

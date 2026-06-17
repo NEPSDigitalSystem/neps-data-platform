@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import parse_qs, urlparse
+
 import responses
 
 from etl.extract.metadata_normalizer import normalize_metadata
@@ -18,12 +20,8 @@ def test_mock_client_export_metadata(mock_settings, mock_metadata) -> None:
     metadata = client.export_metadata()
 
     assert metadata.project_id == "NEPS-2025"
-<<<<<<< Updated upstream
     assert len(metadata.instruments) == 6
     assert metadata.get_instrument("participants") is not None
-=======
-    assert len(metadata.instruments) == 5
->>>>>>> Stashed changes
     assert metadata.source_mode == "mock"
 
 
@@ -61,7 +59,6 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-<<<<<<< Updated upstream
         "http://mock-redcap.test/api/redcap/participants/NEPS-GHA-0001/consent",
         json={
             "record_id": "NEPS-GHA-0001",
@@ -78,8 +75,6 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-=======
->>>>>>> Stashed changes
         "http://mock-redcap.test/api/redcap/screenings/distress",
         json={
             "screenings": [
@@ -103,7 +98,6 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-<<<<<<< Updated upstream
         "http://mock-redcap.test/api/redcap/referrals",
         json={
             "referrals": [
@@ -122,8 +116,6 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-=======
->>>>>>> Stashed changes
         "http://mock-redcap.test/api/redcap/wp6/sessions/NEPS-GHA-0001",
         json={
             "record_id": "NEPS-GHA-0001",
@@ -147,7 +139,6 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     client = MockRedcapClient(mock_settings)
     records = client.export_records()
 
-<<<<<<< Updated upstream
     entities = {record["_entity"] for record in records}
     assert "participants" in entities
     assert "consent_records" in entities
@@ -155,20 +146,59 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     assert "distress_screenings" in entities
     assert "referrals" in entities
     assert "wp6_sessions" in entities
-=======
-    instruments = {record["_instrument"] for record in records}
-    assert "demographics" in instruments
-    assert "monthly_self_report" in instruments
-    assert "distress_screening" in instruments
-    assert "wp6_session" in instruments
->>>>>>> Stashed changes
+
+
+@responses.activate
+def test_mock_client_export_records_honors_date_range_begin(mock_settings) -> None:
+    watermark = "2025-03-01T00:00:00+00:00"
+    responses.add(
+        responses.GET,
+        "http://mock-redcap.test/api/redcap/export/records",
+        json=[
+            {
+                "record_id": "NEPS-GHA-0001",
+                "redcap_event_name": "month_1_arm_1",
+                "month": 1,
+                "survey_date": "2025-02-01",
+                "redcap_repeat_instrument": "monthly_self_report",
+                "redcap_repeat_instance": "1",
+            },
+            {
+                "record_id": "NEPS-GHA-0001",
+                "redcap_event_name": "month_3_arm_1",
+                "month": 3,
+                "survey_date": "2025-03-15",
+                "redcap_repeat_instrument": "monthly_self_report",
+                "redcap_repeat_instance": "3",
+            },
+        ],
+    )
+    responses.add(
+        responses.GET,
+        "http://mock-redcap.test/api/redcap/participants",
+        json={"data": [], "total": 0},
+    )
+    responses.add(
+        responses.GET,
+        "http://mock-redcap.test/api/redcap/screenings/distress",
+        json={"screenings": []},
+    )
+    responses.add(
+        responses.GET,
+        "http://mock-redcap.test/api/redcap/referrals",
+        json={"referrals": []},
+    )
+
+    client = MockRedcapClient(mock_settings)
+    records = client.export_records(date_range_begin=watermark)
+
+    query = parse_qs(urlparse(responses.calls[0].request.url).query)
+    assert query["dateRangeBegin"] == [watermark]
+    assert query["date_range_begin"] == [watermark]
+    assert [record["month"] for record in records] == [3]
 
 
 def test_normalize_mock_metadata(mock_metadata) -> None:
     metadata = normalize_metadata(mock_metadata, source_mode="mock")
     assert metadata.metadata_hash()
-<<<<<<< Updated upstream
     assert metadata.get_instrument("participants") is not None
-=======
-    assert metadata.get_instrument("demographics") is not None
->>>>>>> Stashed changes
