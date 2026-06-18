@@ -10,8 +10,8 @@ from etl.extract.mock_client import MockRedcapClient
 def test_mock_client_export_metadata(mock_settings, mock_metadata) -> None:
     responses.add(
         responses.GET,
-        "http://mock-redcap.test/api/redcap/export/metadata",
-        json=mock_metadata,
+        "http://mock-redcap.test/api/stats",
+        json={},
     )
 
     client = MockRedcapClient(mock_settings)
@@ -26,12 +26,12 @@ def test_mock_client_export_metadata(mock_settings, mock_metadata) -> None:
 def test_mock_client_export_records_aggregates_sources(mock_settings, mock_records) -> None:
     responses.add(
         responses.GET,
-        "http://mock-redcap.test/api/redcap/export/records",
+        "http://mock-redcap.test/api/export/records",
         json=mock_records,
     )
     responses.add(
         responses.GET,
-        "http://mock-redcap.test/api/redcap/participants",
+        "http://mock-redcap.test/api/participants",
         json={
             "data": [
                 {
@@ -56,7 +56,7 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-        "http://mock-redcap.test/api/redcap/screenings/distress",
+        "http://mock-redcap.test/api/distress-screenings",
         json={
             "screenings": [
                 {
@@ -79,7 +79,7 @@ def test_mock_client_export_records_aggregates_sources(mock_settings, mock_recor
     )
     responses.add(
         responses.GET,
-        "http://mock-redcap.test/api/redcap/wp6/sessions/NEPS-GHA-0001",
+        "http://mock-redcap.test/api/wp6-sessions/NEPS-GHA-0001",
         json={
             "record_id": "NEPS-GHA-0001",
             "sessions": [

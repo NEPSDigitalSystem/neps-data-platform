@@ -27,7 +27,7 @@ def mock_records(fixtures_dir: Path) -> list[dict]:
 def mock_settings() -> Settings:
     return Settings(
         DATABASE_URL="postgresql://neps:neps_password@localhost:5432/neps_db",
-        REDCAP_API_URL="http://mock-redcap.test/api/redcap",
+        REDCAP_API_URL="http://mock-redcap.test",
         REDCAP_API_TOKEN="mock_token_for_development_only",
         REDCAP_MOCK_ENABLED=True,
         REDCAP_PROJECT_ID="NEPS-2025",
