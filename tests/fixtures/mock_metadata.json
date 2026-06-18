@@ -1,0 +1,12 @@
+{
+  "project_id": "NEPS-2025",
+  "project_title": "NEPS Digital - Youth Mental Health Observatory",
+  "events": [
+    {"event_name": "baseline_arm_1", "arm_num": 1, "day_offset": 0},
+    {"event_name": "month_1_arm_1", "arm_num": 1, "day_offset": 30}
+  ],
+  "instruments": [
+    {"instrument_name": "demographics", "instrument_label": "Demographics"},
+    {"instrument_name": "monthly_self_report", "instrument_label": "Monthly Self-Report"}
+  ]
+}
