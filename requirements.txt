@@ -6,4 +6,4 @@ pydantic>=2.5.0,<3
 pydantic-settings>=2.1.0,<3
 python-dotenv>=1.2.2,<2
 structlog>=24.1.0,<26
-pandas>=2.0.0,<3
+pandas>=3.0.4,<4
