@@ -4,6 +4,6 @@ psycopg2-binary>=2.9.12,<3
 alembic>=1.13.0,<2
 pydantic>=2.13.4,<3
 pydantic-settings>=2.14.2,<3
-python-dotenv>=1.2.2,<2
+python-dotenv>=1.2.3,<2
 structlog>=24.1.0,<26
 pandas>=3.0.5,<4
