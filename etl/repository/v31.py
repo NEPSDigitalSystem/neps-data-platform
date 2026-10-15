@@ -16,7 +16,8 @@ import re
 from typing import Protocol
 from uuid import uuid4
 
-from sqlalchemy import Column, ForeignKey, Integer, JSON, MetaData, String, Table, UniqueConstraint, select
+from sqlalchemy import Column, ForeignKey, Integer, JSON, MetaData, String, Table, UniqueConstraint, CheckConstraint, select
+from etl.load.locking import lock_identity
 
 metadata = MetaData()
 raw = Table('nds_v31_source', metadata,
@@ -29,7 +30,8 @@ raw = Table('nds_v31_source', metadata,
     Column('nds_participant_id', String),
     Column('intake_revision_id', String), Column('source_metadata_hash', String),
     Column('source_metadata', JSON),
-    UniqueConstraint('identity_key', 'revision'))
+    UniqueConstraint('identity_key', 'storage_destination', 'revision', name='uq_source_destination_revision'),
+    CheckConstraint('revision > 0', name='ck_nds_v31_source_revision'))
 validated = Table('nds_v31_validated', metadata,
     Column('source_id', String, ForeignKey(raw.c.id), primary_key=True),
     Column('values', JSON, nullable=False, quote=True), Column('issues', JSON, nullable=False))
@@ -227,7 +229,9 @@ class Repository:
         source_fields = None if source_metadata is None else {f['Variable / Field Name']:f for f in source_metadata}
         values, issues = self._validate(payload, source_fields)
         with self.engine.begin() as conn:
+            lock_identity(conn, 'research-receipt', key + ':' + self.storage_destination)
             previous = conn.execute(select(raw).where(raw.c.identity_key == key)
+                                    .where(raw.c.storage_destination == self.storage_destination)
                                     .order_by(raw.c.revision.desc()).limit(1)).mappings().first()
             if previous and previous['change_hash'] == change:
                 self._audit(conn, previous['id'], 'replay', actor)
@@ -260,6 +264,7 @@ class Repository:
         state = self._authorise(identity, 'export', actor, destination)
         with self.engine.begin() as conn:
             row = conn.execute(select(raw).where(raw.c.identity_key == digest(asdict(identity)))
+                               .where(raw.c.storage_destination == self.storage_destination)
                                .order_by(raw.c.revision.desc()).limit(1)).mappings().first()
             if row is None:
                 return None
@@ -272,13 +277,17 @@ class Repository:
             raise ValueError('Calculation version required')
         canonical(result)
         with self.engine.begin() as conn:
+            lock_identity(conn, 'derivation', source_id)
             row = conn.execute(select(raw).where(raw.c.id == source_id)).mappings().one()
             identity = RecordIdentity(**row['identity'])
             if type(self.storage_destination) is not str or not self.storage_destination:
                 raise AccessDenied('Explicit approved storage destination required')
+            if row['storage_destination'] != self.storage_destination:
+                raise AccessDenied('Source storage destination differs from authorised repository')
             state = self._authorise(identity, 'derive', actor, self.storage_destination)
             self._check_registration(row, state)
             latest = conn.execute(select(raw.c.id).where(raw.c.identity_key == row['identity_key'])
+                                  .where(raw.c.storage_destination == self.storage_destination)
                                   .order_by(raw.c.revision.desc()).limit(1)).scalar_one()
             if latest != source_id:
                 raise ValueError('Stale source revision')
@@ -301,6 +310,7 @@ class Repository:
         state = self._authorise(identity, 'review', actor, destination)
         with self.engine.begin() as conn:
             row = conn.execute(select(raw).where(raw.c.identity_key == digest(asdict(identity)))
+                               .where(raw.c.storage_destination == self.storage_destination)
                                .order_by(raw.c.revision.desc()).limit(1)).mappings().first()
             if row is None:
                 return None

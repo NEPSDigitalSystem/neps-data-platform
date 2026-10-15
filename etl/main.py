@@ -58,7 +58,8 @@ def cmd_health(args: argparse.Namespace) -> int:
 def cmd_migrate(args: argparse.Namespace) -> int:
     settings = get_settings()
     alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_cfg.attributes["database_url"] = settings.database_url
+    alembic_cfg.attributes["warehouse_schema"] = settings.warehouse_schema
     command.upgrade(alembic_cfg, "head")
     logger.info("migrations_applied")
     return 0

@@ -4,6 +4,7 @@ No participant or consent is created here. The authoriser must verify an actual
 NDS registration/ID and actor permission before binding an external source ID.
 """
 from sqlalchemy import Column, MetaData, String, Table, insert, select
+from etl.load.locking import lock_identity
 
 metadata=MetaData()
 links=Table('nds_v31_participant_links',metadata,
@@ -29,6 +30,7 @@ class ParticipantLinks:
         if allowed is not True:
             raise PermissionError('NDS registration binding not authorised')
         with self.engine.begin() as c:
+            lock_identity(c, 'participant-link', project + ':' + source_id)
             old=c.execute(select(links).where(links.c.project==project,links.c.source_id==source_id)).mappings().first()
             if old:
                 if old['nds_id']!=nds_id or old['mapping_version']!=mapping_version:

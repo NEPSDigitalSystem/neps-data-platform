@@ -16,6 +16,8 @@ from uuid import uuid4
 from sqlalchemy import (Column, Float, ForeignKey, Integer, JSON, MetaData, String, func,
                         Table, UniqueConstraint, and_, insert, or_, select, update)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index
+from etl.load.locking import lock_identity
 
 
 metadata = MetaData()
@@ -39,6 +41,24 @@ pending = Table("nds_v31_intake_pending", metadata,
 audit = Table("nds_v31_intake_audit", metadata,
     Column("id", String, primary_key=True), Column("source_revision_id", String, ForeignKey(raw.c.id), nullable=False),
     Column("action", String, nullable=False), Column("actor", String, nullable=False), Column("at", Float, nullable=False))
+
+# Post-004 integrity. Frozen migration 002 remains unchanged.
+raw.append_constraint(UniqueConstraint("identity_key", "revision", "id", name="uq_intake_head_target"))
+head.append_constraint(ForeignKeyConstraint(
+    ["identity_key", "revision", "source_revision_id"],
+    [raw.c.identity_key, raw.c.revision, raw.c.id], name="fk_intake_head_revision"))
+for table in (raw, head):
+    table.append_constraint(CheckConstraint("revision > 0", name=f"ck_{table.name}_revision"))
+raw.append_constraint(CheckConstraint(
+    "(identity->>'project') IS NOT DISTINCT FROM project", name="ck_intake_project").ddl_if(dialect="postgresql"))
+pending.append_constraint(CheckConstraint(
+    "state IN ('pending', 'retry', 'processing', 'acknowledged')", name="ck_pending_state"))
+pending.append_constraint(CheckConstraint("attempts >= 0", name="ck_pending_attempts"))
+pending.append_constraint(CheckConstraint(
+    "state NOT IN ('processing', 'acknowledged') OR "
+    "(claim_token IS NOT NULL AND claim_actor IS NOT NULL AND lease_until IS NOT NULL)", name="ck_pending_claim"))
+Index("ix_pending_ready", pending.c.state, pending.c.next_attempt_at, pending.c.lease_until)
+Index("ix_intake_scope", raw.c.project, raw.c.destination, raw.c.received_at, raw.c.revision)
 
 FAILURE_CODES = frozenset({"nds_unavailable", "mapping_pending", "processing_restricted",
                            "destination_unavailable", "transient_failure", "internal_failure"})
@@ -184,6 +204,7 @@ class Intake:
         for attempt in range(3):
             try:
                 with self.engine.begin() as connection:
+                    lock_identity(connection, "source-receipt", key)
                     current = connection.execute(select(head).where(head.c.identity_key == key)).mappings().first()
                     revision = 1 if current is None else current["revision"] + 1
                     if current:
@@ -238,7 +259,8 @@ class Intake:
             with self.engine.begin() as connection:
                 row = connection.execute(select(raw, pending.c.attempts).join(pending, raw.c.id == pending.c.source_revision_id)
                     .where(and_(raw.c.project == self.project, raw.c.destination == self.destination, eligible))
-                    .order_by(raw.c.received_at, raw.c.revision).limit(1)).mappings().first()
+                    .order_by(raw.c.received_at, raw.c.revision).limit(1)
+                    .with_for_update(of=pending, skip_locked=True)).mappings().first()
                 if row is None: return None
                 token = str(uuid4())
                 result = connection.execute(update(pending).where(and_(pending.c.source_revision_id == row["id"], eligible))

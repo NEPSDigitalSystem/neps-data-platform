@@ -3,13 +3,21 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+import re
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _read_secret_file(path: str) -> str:
     return Path(path).read_text(encoding="utf-8").strip()
+
+
+def validate_warehouse_schema(value):
+    if value is not None and (not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", value)
+                              or value.startswith("pg_") or value == "information_schema"):
+        raise ValueError("WAREHOUSE_SCHEMA must name an application schema")
+    return value
 
 
 class Settings(BaseSettings):
@@ -28,6 +36,7 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     database_url_file: str | None = Field(default=None, alias="DATABASE_URL_FILE")
+    warehouse_schema: str | None = Field(default=None, alias="WAREHOUSE_SCHEMA")
 
     redcap_api_url: str = Field(
         default="http://localhost:8000/api/redcap",
@@ -45,6 +54,11 @@ class Settings(BaseSettings):
     source_service_identity: str | None = Field(default=None, alias="SOURCE_SERVICE_IDENTITY")
     source_event_mode: Literal["auto", "unverified", "classic", "longitudinal"] = Field(
         default="auto", alias="SOURCE_EVENT_MODE")
+
+    @field_validator("warehouse_schema")
+    @classmethod
+    def check_warehouse_schema(cls, value):
+        return validate_warehouse_schema(value)
 
     @model_validator(mode="after")
     def resolve_secrets(self) -> Settings:

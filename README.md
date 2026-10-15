@@ -65,6 +65,7 @@ reviewed database migrations and actual source/destination permission evidence.
 | Setting | Purpose |
 | --- | --- |
 | `DATABASE_URL_FILE` | Mounted file containing a complete database URL |
+| `WAREHOUSE_SCHEMA` | Explicit approved schema for V3.1 tables and Alembic history; required for PostgreSQL |
 | `REDCAP_API_URL` | Verified HTTPS API endpoint |
 | `REDCAP_API_TOKEN_FILE` | Mounted source service token |
 | `REDCAP_MOCK_ENABLED` | Must be `false` for independent source collection |
@@ -119,3 +120,29 @@ docker build -t neps-data-platform:review .
 A container build is separate evidence. The current image command has no CLI
 subcommand, so the runtime owner must provide a reviewed invocation. No deployment
 or scheduler activation follows from a local test pass.
+
+## DE03 storage review
+
+Migrations 001 and 002 remain frozen. Revision 003 adds eleven nullable legacy
+columns and rejects incompatible manual repairs. Revision 004 scopes research
+revisions by storage destination and adds intake-head, revision and queue
+constraints. Both require reviewed forward recovery rather than destructive
+automatic downgrade. PostgreSQL writers use transaction-scoped identity locks;
+claims use skip-locked row locking.
+
+Use the approved schema through `WAREHOUSE_SCHEMA`. The DBA must provision it
+and check existing Alembic history first. Runtime Core queries qualify their
+tables through this setting. Migration 002 resolves its unqualified names with
+an explicit transaction-local search path. History in another schema blocks
+execution instead of silently moving or restarting the revision chain. Bare
+PostgreSQL URLs select the declared psycopg2 driver.
+
+`ops/de03_role_grants.sql` is a candidate privilege specification for DBA review.
+Runtime roles must not own the tables or inherit the owner. Raw and audit rows
+receive no UPDATE, DELETE or TRUNCATE grants. These grants do not implement
+per-project row-level access or prove live source permissions.
+
+PostgreSQL acceptance tests are under `tests/postgresql`. They require explicit
+synthetic scope and a URL-file reference. Without that configuration they skip,
+and a skipped check is not a PostgreSQL pass. Recovery acceptance also needs the
+DBA's procedure and agreed recovery targets.
