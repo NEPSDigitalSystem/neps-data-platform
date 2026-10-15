@@ -1,0 +1,638 @@
+{
+  "verification_scope": "local supplied documents only; live REDCap metadata NOT TESTED",
+  "contract_version": "NEPS-V3.1-local-evidence-3-independent-redcap-intake",
+  "dictionary_sha256": "46d6873ade73bcaecee90d440db918b0da8ef7f337be318d5b1e03aeb614e7eb",
+  "source_hashes": [
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS Master CRF V3.1- REDCap Data Dictionary/NEPS_Master_CRF_V3_1_REDCap_18_Column_Data_Dictionary.csv",
+      "sha256": "81e392fb4a3a72c82bb935a998b0dfcc2bf15f6080e8da4d27d12c8483e13ea7"
+    },
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS_V3_1_Mapping_Workbook.xlsx",
+      "sha256": "c783dadb4a5f7ec4a05debc9deed4766f11910d6c8028dbd4e9bb29bc016cf01"
+    },
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS Master CRF V3.1/NEPS_V3_1_Priority_Order_REDCap_Build_Package.zip",
+      "sha256": "159a57ac76a43f7b5390e2b3dc8325213151ce40d7501b22645937d400a1e327"
+    },
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS Master CRF V3.1- Country Adaptations/Education_Level_Crosswalk_Country_Display.csv",
+      "sha256": "24787d021f0e8db7dbb4b3988350f0e613b69510e0485f12fde3f527c93a3ddc"
+    },
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS Master CRF V3.1- Country Adaptations/NEPS_V3_1_MLM_Country_English_Display_Manifest.csv",
+      "sha256": "0ea594aa961be3226571e07788cd6013b59a44ce1a08cc25bf9c8b613ea65e62"
+    },
+    {
+      "path": "/Users/obedbrew/Library/CloudStorage/OneDrive-precisionme.co.uk/NEPS Project/NEPS Stage 4 - Delivery/WP2/RedCap/Sept 26 RedCap/NEPS CRF V3.1/NEPS Master CRF V3.1/NEPS_V3_1_Priority_Order_REDCap_Build_Package.zip",
+      "archive_member": "NEPS_V3_1_Ordered_Item_to_Analysis_Map.csv",
+      "sha256": "53c0a21a6795e689de4bf43e8335fcefc33cee122592cf1058a3224d52f9998f"
+    }
+  ],
+  "fields": [
+    {
+      "name": "epi_expectations_1",
+      "index": "EPI",
+      "dimension": "expectations",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_expectations_2",
+      "index": "EPI",
+      "dimension": "expectations",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_failure_1",
+      "index": "EPI",
+      "dimension": "failure",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_failure_2",
+      "index": "EPI",
+      "dimension": "failure",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_caregivers_1",
+      "index": "EPI",
+      "dimension": "caregivers",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_caregivers_2",
+      "index": "EPI",
+      "dimension": "caregivers",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_future_1",
+      "index": "EPI",
+      "dimension": "future",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_future_2",
+      "index": "EPI",
+      "dimension": "future",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_progress_1",
+      "index": "EPI",
+      "dimension": "progress",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "epi_progress_2",
+      "index": "EPI",
+      "dimension": "progress",
+      "direction": "",
+      "reference_period": "Current views about current, previous or desired education",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "esi_finstrain_1",
+      "index": "ESI",
+      "dimension": "finstrain",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_finstrain_2",
+      "index": "ESI",
+      "dimension": "finstrain",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_food_1",
+      "index": "ESI",
+      "dimension": "food",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_food_2",
+      "index": "ESI",
+      "dimension": "food",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_educost_1",
+      "index": "ESI",
+      "dimension": "educost",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_educost_2",
+      "index": "ESI",
+      "dimension": "educost",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_materials_1",
+      "index": "ESI",
+      "dimension": "materials",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_materials_2",
+      "index": "ESI",
+      "dimension": "materials",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_transport_1",
+      "index": "ESI",
+      "dimension": "transport",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "esi_transport_2",
+      "index": "ESI",
+      "dimension": "transport",
+      "direction": "",
+      "reference_period": "Past 12 months",
+      "choices": "0, Never | 1, Rarely | 2, Sometimes | 3, Often | 4, Very often"
+    },
+    {
+      "name": "sbi_loved_1",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_2",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_3",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_4",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_5",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_6",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_7",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_loved_8",
+      "index": "SBI",
+      "dimension": "anticipated_loved",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_comm_1",
+      "index": "SBI",
+      "dimension": "anticipated_community",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_comm_2",
+      "index": "SBI",
+      "dimension": "anticipated_community",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_comm_3",
+      "index": "SBI",
+      "dimension": "anticipated_community",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_comm_4",
+      "index": "SBI",
+      "dimension": "anticipated_community",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_self_1",
+      "index": "SBI",
+      "dimension": "self_stigma_expect",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_self_2",
+      "index": "SBI",
+      "dimension": "self_stigma_expect",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_self_3",
+      "index": "SBI",
+      "dimension": "self_stigma_expect",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_self_4",
+      "index": "SBI",
+      "dimension": "self_stigma_expect",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_help_1",
+      "index": "SBI",
+      "dimension": "help_seeking_self_stigma",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_help_2",
+      "index": "SBI",
+      "dimension": "help_seeking_self_stigma",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "sbi_help_3",
+      "index": "SBI",
+      "dimension": "help_seeking_self_stigma",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Somewhat disagree | 3, Neither agree nor disagree | 4, Somewhat agree | 5, Strongly agree"
+    },
+    {
+      "name": "k6_1",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "k6_2",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "k6_3",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "k6_4",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "k6_5",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "k6_6",
+      "index": "MHDI",
+      "dimension": "K6",
+      "direction": "",
+      "reference_period": "Past 30 days",
+      "choices": "0, None of the time | 1, A little of the time | 2, Some of the time | 3, Most of the time | 4, All of the time"
+    },
+    {
+      "name": "brs_01",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "brs_02",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "6−raw",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "brs_03",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "brs_04",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "6−raw",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "brs_05",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "brs_06",
+      "index": "PFI",
+      "dimension": "resilience",
+      "direction": "6−raw",
+      "reference_period": "",
+      "choices": "1, Strongly disagree | 2, Disagree | 3, Neutral | 4, Agree | 5, Strongly agree"
+    },
+    {
+      "name": "mspss_01",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_02",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_03",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_04",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_05",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_06",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_07",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_08",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_09",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_10",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_11",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "mspss_12",
+      "index": "PFI",
+      "dimension": "social_support",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Very strongly disagree | 2, Strongly disagree | 3, Mildly disagree | 4, Neutral | 5, Mildly agree | 6, Strongly agree | 7, Very strongly agree"
+    },
+    {
+      "name": "gse_01",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_02",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_03",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_04",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_05",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_06",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_07",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_08",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_09",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    },
+    {
+      "name": "gse_10",
+      "index": "PFI",
+      "dimension": "self_efficacy",
+      "direction": "",
+      "reference_period": "",
+      "choices": "1, Not at all true | 2, Hardly true | 3, Moderately true | 4, Exactly true"
+    }
+  ],
+  "participant_linkage": {
+    "id_issuer": "REDCap",
+    "source_record_id_field": "study_id",
+    "namespace": [
+      "redcap_project_id",
+      "study_id"
+    ],
+    "decision_source": "User instruction, 12 October 2026: REDCap independently collects survey consent/responses; NDS separate consent/registration/IDs occur after export",
+    "nds_authority": [
+      "registration",
+      "consent",
+      "processing_permissions"
+    ],
+    "nds_id_issuer": "NDS - separate namespace after source export",
+    "policy": "Preserve REDCap-issued ID and survey data verbatim. Full source intake requires no NDS registration, NDS ID or NDS consent. Map to a separate NDS ID downstream without overwriting source ID.",
+    "unregistered_policy": "Receive all source data durably and queue for later NDS registration; separate NDS consent applies to downstream NDS purposes only",
+    "survey_consent": "User confirms survey consent in REDCap; actual field/form not present in supplied dictionary and remains UNVERIFIED. Preserve real exported evidence; never infer from completion/willingness.",
+    "offline_policy": "REDCap collection/completion independent of NDS; offline device data reach server before API export; retry and full reconciliation after connectivity returns",
+    "generation_configuration": "UNVERIFIED: deployed REDCap record auto-numbering/ID rules require configuration evidence; no numbering pattern invented"
+  }
+}

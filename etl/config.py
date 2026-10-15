@@ -40,6 +40,11 @@ class Settings(BaseSettings):
 
     http_timeout_seconds: int = 120
     http_max_retries: int = 3
+    source_intake_enabled: bool = Field(default=False, alias="SOURCE_INTAKE_ENABLED")
+    source_destination: str | None = Field(default=None, alias="SOURCE_DESTINATION")
+    source_service_identity: str | None = Field(default=None, alias="SOURCE_SERVICE_IDENTITY")
+    source_event_mode: Literal["auto", "unverified", "classic", "longitudinal"] = Field(
+        default="auto", alias="SOURCE_EVENT_MODE")
 
     @model_validator(mode="after")
     def resolve_secrets(self) -> Settings:

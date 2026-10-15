@@ -11,6 +11,8 @@ def create_db_engine(settings: Settings) -> Engine:
         settings.database_url,
         pool_pre_ping=True,
         future=True,
+        hide_parameters=True,
+        echo=False,
     )
 
 
