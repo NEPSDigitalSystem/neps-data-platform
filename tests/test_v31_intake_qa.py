@@ -28,7 +28,7 @@ def test_intake_accepts_all_source_responses_and_separate_actual_consent_without
  r,policy,i,p,clock=store
  from pathlib import Path
  import json
- contract=json.loads((Path(__file__).parents[1]/'etl/contracts/data_contract_v31.json').read_text())
+ contract=json.loads((Path(__file__).parents[1]/'etl/contracts/data_contract_v31.json').read_text(encoding="utf-8"))
  payload=p|{name:['',None,'0'][n%3] for n,name in enumerate(contract['question_fields'])}
  # Arbitrary observed additional metadata is source-preserved, never interpreted as approved consent.
  payload['actual_source_field_from_metadata']='source-code'

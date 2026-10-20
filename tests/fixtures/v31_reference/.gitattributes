@@ -1,0 +1,4 @@
+# Preserve the supplied CSV BOM and CRLF bytes used by the source SHA256 checks.
+*.csv -text whitespace=cr-at-eol
+*.xlsx -text
+*.zip -text

@@ -4,15 +4,15 @@ import json
 from pathlib import Path
 import unittest
 from etl.scoring.v31 import Scorer, composite
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parent / 'fixtures'
 CONTRACT = Path(__file__).resolve().parents[1] / 'etl/contracts/data_contract_v31.json'
 
 class ScoringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.contract = json.loads(CONTRACT.read_text())
+        cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
         cls.scorer = Scorer(cls.contract)
-        cls.cases = json.loads((ROOT / '.codex-build/SCORING_GOLDEN.json').read_text())['cases']
+        cls.cases = json.loads((ROOT / 'SCORING_GOLDEN.json').read_text(encoding="utf-8"))['cases']
         cls.base = next(c['responses'] for c in cls.cases if c['id'] == 'minimum_nses')
 
     def test_independent_golden_cases(self):

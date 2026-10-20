@@ -25,12 +25,24 @@ def pg_admin():
     if url.get_backend_name() != 'postgresql':
         pytest.fail('PostgreSQL is required, no substitute database accepted')
     container = os.environ.get('NEPS_DE03_CONTAINER', '')
-    if url.host != '127.0.0.1' or url.database != 'neps_de03_seed' or not container.startswith('neps-de03-synthetic-'):
+    network = os.environ.get('NEPS_DE03_NETWORK')
+    if url.database != 'neps_de03_seed' or not container.startswith('neps-de03-synthetic-'):
         pytest.fail('This administrative fixture is restricted to the new local DE03 container')
     label = subprocess.check_output(['docker', 'inspect', '--format', '{{index .Config.Labels "neps.task"}}', container], text=True).strip()
     ports = json.loads(subprocess.check_output(['docker', 'inspect', '--format', '{{json .NetworkSettings.Ports}}', container], text=True))
-    if label != 'DE03' or not any(p['HostIp'] == '127.0.0.1' and int(p['HostPort']) == url.port for p in ports['5432/tcp']):
+    if label != 'DE03':
         pytest.fail('URL does not identify the labelled disposable fixture')
+    if network:
+        if not network.startswith('neps-de03-synthetic-network-') or url.host != container or url.port != 5432:
+            pytest.fail('URL does not identify the dedicated synthetic network fixture')
+        details = json.loads(subprocess.check_output(['docker', 'network', 'inspect', network], text=True))[0]
+        members = {item['Name'] for item in details.get('Containers', {}).values()}
+        if (details['Internal'] is not True or details.get('Labels', {}).get('neps.task') != 'DE03'
+                or container not in members or any(ports.values())):
+            pytest.fail('Container mode requires an internal labelled network with no published ports')
+    elif url.host != '127.0.0.1' or not any(
+            p['HostIp'] == '127.0.0.1' and int(p['HostPort']) == url.port for p in ports['5432/tcp']):
+        pytest.fail('URL does not identify the loopback-only disposable fixture')
 
     engine = create_engine(url, isolation_level='AUTOCOMMIT', hide_parameters=True, echo=False)
     with engine.connect() as c:

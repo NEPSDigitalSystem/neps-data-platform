@@ -8,9 +8,9 @@ ROOT=Path(__file__).resolve().parents[1]
 class IndependentScoringQA(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
-  cls.contract=json.loads((ROOT/'etl/contracts/data_contract_v31.json').read_text())
+  cls.contract=json.loads((ROOT/'etl/contracts/data_contract_v31.json').read_text(encoding="utf-8"))
   cls.scorer=Scorer(cls.contract)
-  gold=json.loads((ROOT.parents[1]/'.codex-build/SCORING_GOLDEN.json').read_text())
+  gold=json.loads((ROOT/'tests/fixtures/SCORING_GOLDEN.json').read_text(encoding="utf-8"))
   cls.base=next(c['responses'] for c in gold['cases'] if c['id']=='minimum_nses')
  def test_true_economic_zero_is_valid(self):
   r=self.scorer.score(self.base,epi_applicable=True)

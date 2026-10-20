@@ -14,7 +14,7 @@ from etl.contracts.v31 import (ContractError, NAME, archive_member,
 
 REPO = Path(__file__).resolve().parents[1]
 CONTRACT = REPO / "etl/contracts/data_contract_v31.json"
-REFERENCE_ROOT = REPO.parents[2]
+REFERENCE_ROOT = REPO / "tests/fixtures/v31_reference"
 
 # Explicit independent manifest transcribed from the actual workbook NSES 73
 # Items sheet; no prefix-based inference of membership is permitted.
@@ -106,7 +106,7 @@ class V31ContractTests(unittest.TestCase):
         self.assertEqual(control["numeric_control_code"], "1")
 
     def test_full_188_fixture_transport_preserves_unanswered_values(self):
-        fixture = json.loads((CONTRACT.parent / "synthetic_188_unanswered.json").read_text())
+        fixture = json.loads((CONTRACT.parent / "synthetic_188_unanswered.json").read_text(encoding="utf-8"))
         responses = fixture["responses"]
         self.assertEqual(set(responses), set(self.contract["question_fields"]))
         self.assertEqual(len(responses), 188)

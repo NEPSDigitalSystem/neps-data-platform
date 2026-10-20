@@ -151,7 +151,7 @@ class Intake:
                  policy: IntakePolicy | None = None, clock=time.time):
         self.engine, self.project, self.destination = engine, project, destination
         self.service_identity, self.policy, self.clock = service_identity, policy, clock
-        contract = json.loads((Path(__file__).parents[1] / "contracts/data_contract_v31.json").read_text())
+        contract = json.loads((Path(__file__).parents[1] / "contracts/data_contract_v31.json").read_text(encoding="utf-8"))
         self.contract_hash = digest(contract)
         self.record_id_field = contract["fields"][0]["name"]
 

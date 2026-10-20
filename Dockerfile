@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY etl/ ./etl/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
+COPY ops/ ./ops/
 
 RUN chown -R neps:neps /app
 USER neps

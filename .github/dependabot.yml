@@ -11,7 +11,7 @@ updates:
       - "dependencies"
       - "data-platform"
     groups:
-      # Group patch updates (bug fixes) - safe to merge together
+      # Group patch updates across runtime and test dependencies for human review
       patch-updates:
         patterns:
           - "*"

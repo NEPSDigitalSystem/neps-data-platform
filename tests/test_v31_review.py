@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from etl.analytics.v31_review import completion
-C = json.loads((Path(__file__).parents[1] / 'etl/contracts/data_contract_v31.json').read_text())
+C = json.loads((Path(__file__).parents[1] / 'etl/contracts/data_contract_v31.json').read_text(encoding="utf-8"))
 
 
 def test_complete_screening_can_coexist_with_115_unanswered():

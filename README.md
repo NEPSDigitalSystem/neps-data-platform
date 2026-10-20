@@ -32,29 +32,35 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-The current container uses Python 3.14 and CI declares Python 3.11. Local DE02
-results are for Python 3.14 only. Do not infer a Python 3.11 or container pass.
-
-The full source-contract and golden-scoring tests need the supplied handover's
-reference layout. After reviewing and integrating the data-platform patch, use
-its portable helper. Supply the actual handover and merged checkout paths:
+CI tests Python 3.11 and 3.14. The container uses Python 3.14. The supplied
+dictionary, workbook, ordered map, country displays and independent scoring
+cases are under `tests/fixtures`. Their original SHA256 values are checked.
+Normal tests run directly from any checkout:
 
 ```bash
-NEPS_HANDOVER='/home/frank/Documents/Syncthing/Obsidian/Work/NEPS/NDS_Team'
-NEPS_SOURCE_TREE='/path/to/reviewed/data-platform-worktree'
-NEPS_VERIFY_PARENT="$(mktemp -d /tmp/neps-de-verify-XXXXXX)"
-python3 "$NEPS_HANDOVER/prepare_verification.py" "$NEPS_SOURCE_TREE" --output "$NEPS_VERIFY_PARENT/work"
-NEPS_TEST_TREE="$NEPS_VERIFY_PARENT/work/reference_root/REDCap_NDS Build/nds-work/neps-data-platform-main"
-cd "$NEPS_TEST_TREE"
-/path/to/isolated/venv/bin/python -m pytest tests -q
+.venv/bin/python -m pytest tests -q
 ```
 
-The output directory must be new. The helper copies code, tests and supplied
-reference documents, excludes `.env` and secret/data files, and regenerates only
-the copied contract's reference paths. Prepare a fresh copy after code changes.
 Run with synthetic settings and no inherited real secret-file configuration.
-SQLite tests and injected policies verify local behaviour only. They do not prove
-PostgreSQL concurrency or actual service permissions.
+Without explicit database configuration, PostgreSQL cases skip. Those skips do
+not prove database behaviour. To execute every test against a new local synthetic
+PostgreSQL 18 container, with migrations, concurrency, privileges and recovery:
+
+```bash
+.venv/bin/python scripts/verify_postgresql.py --evidence-dir /tmp/neps-postgresql-review
+```
+
+This command needs Docker and a new evidence directory. It uses a pinned image,
+publishes only on loopback, creates no permanent volume, and removes its own
+container afterward. It never reads an existing database URL or source token.
+The synthetic instance uses trust authentication only within that disposable
+scope. CI runs the same procedure and rejects skipped tests. Injected source/NDS
+policies still do not verify actual service permissions.
+
+Contract generation records relative source names. Moving the checkout no longer
+changes the contract or scoring version. Normalising the former absolute paths
+changes the contract hash once; previously retained hashes/results remain intact.
+The dictionary, source-file hashes and scientific rules did not change.
 
 ## Source intake configuration
 

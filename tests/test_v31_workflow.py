@@ -12,7 +12,7 @@ from etl.repository.migration import upgrade
 from etl.sync.v31_workflow import Workflow,DownstreamProcessor
 from etl.intake.v31 import Intake,metadata as intake_metadata,raw as intake_raw
 from etl.repository.participant_links import ParticipantLinks,metadata as link_metadata
-C=json.loads((Path(__file__).parents[1]/'etl/contracts/data_contract_v31.json').read_text())
+C=json.loads((Path(__file__).parents[1]/'etl/contracts/data_contract_v31.json').read_text(encoding="utf-8"))
 
 class Policy:
     def __init__(self): self.state=RegistryDecision('Ghana',True,True,'NDS-SYN-17'); self.grant=True

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from etl.contracts.linkage import RedcapParticipantKey
 
-CONTRACT = json.loads((Path(__file__).parents[1] / 'etl/contracts/data_contract_v31.json').read_text())
+CONTRACT = json.loads((Path(__file__).parents[1] / 'etl/contracts/data_contract_v31.json').read_text(encoding="utf-8"))
 
 
 def test_redcap_issued_id_preserved_and_project_namespaced():

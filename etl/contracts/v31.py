@@ -268,8 +268,8 @@ def build_from_sources(reference_root):
                  country_dir / "NEPS_V3_1_MLM_Country_English_Display_Manifest.csv"]
     sources = []
     for path in [dictionary_path, workbook_path, package] + countries:
-        sources.append({"path": str(path), "sha256": digest(path.read_bytes())})
-    sources.append({"path": str(package), "archive_member": member,
+        sources.append({"path": path.relative_to(root).as_posix(), "sha256": digest(path.read_bytes())})
+    sources.append({"path": package.relative_to(root).as_posix(), "archive_member": member,
                     "sha256": digest(archive_member(package, member))})
     return build_contract(csv_rows(dictionary_path.read_bytes()),
                           csv_rows(archive_member(package, member)),

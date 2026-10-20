@@ -124,7 +124,7 @@ class Repository:
     def __init__(self, engine, adapter: PolicyAdapter | None = None, *, storage_destination: str | None = None):
         self.engine, self.adapter = engine, adapter
         self.storage_destination = storage_destination
-        self.contract = json.loads((Path(__file__).parents[1] / 'contracts/data_contract_v31.json').read_text())
+        self.contract = json.loads((Path(__file__).parents[1] / 'contracts/data_contract_v31.json').read_text(encoding="utf-8"))
         self.fields = {f['name']: f['dictionary_metadata'] for f in self.contract['fields']}
         self.contract_hash = digest(self.contract)
         self.source_only = {f['name'] for f in self.contract['fields']

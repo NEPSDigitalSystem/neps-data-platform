@@ -13,7 +13,7 @@ from sqlalchemy.exc import OperationalError
 from etl.intake.v31 import (Claim, Intake, IntakeDenied, IntakeUnavailable, QueueConflict,
                            RecordIdentity, audit, head, metadata, pending, raw)
 
-CONTRACT = json.loads((Path(__file__).parents[1] / "etl/contracts/data_contract_v31.json").read_text())
+CONTRACT = json.loads((Path(__file__).parents[1] / "etl/contracts/data_contract_v31.json").read_text(encoding="utf-8"))
 
 
 class SourcePolicy:

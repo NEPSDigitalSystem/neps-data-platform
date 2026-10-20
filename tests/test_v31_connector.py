@@ -16,7 +16,7 @@ from etl.extract.production_client import (
     RedcapClientError, RedcapMetadataDrift,
 )
 
-CONTRACT = json.loads((Path(__file__).parents[1] / "etl/contracts/data_contract_v31.json").read_text())
+CONTRACT = json.loads((Path(__file__).parents[1] / "etl/contracts/data_contract_v31.json").read_text(encoding="utf-8"))
 
 
 def native_metadata():

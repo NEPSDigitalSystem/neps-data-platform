@@ -232,6 +232,33 @@ def test_research_destination_and_concurrent_results(pg_database):
     assert count(engine,research_raw)==2
 
 
+@pytest.mark.parametrize('same_payload', [True, False])
+def test_separately_scoped_policies_cannot_reuse_other_destination(pg_database, same_payload):
+    class DestinationPolicy:
+        def __init__(self, destination): self.destination = destination
+        def resolve(self, identity): return RegistryDecision('Ghana', True, True, 'NDS-synthetic')
+        def permits(self, identity, action, actor, destination): return destination == self.destination
+        def transfer_permitted(self, identity, destination): return destination == self.destination
+
+    db = pg_database
+    db['migrate']()
+    db['grants']()
+    engine = db['engine']('de03_processor')
+    identity = ResearchIdentity('synthetic-project', 'same-source', '', '', '')
+    a = Repository(engine, DestinationPolicy('a'), storage_destination='a')
+    b = Repository(engine, DestinationPolicy('b'), storage_destination='b')
+    payload = {'study_id': 'same-source', 'k6_1': '1'}
+    source_a = a.ingest(identity, payload, 'synthetic-v1', 'fixture')
+    second = dict(payload) if same_payload else dict(payload, k6_1='4')
+    source_b = b.ingest(identity, second, 'synthetic-v1', 'fixture')
+    assert source_a != source_b
+    assert a.export(identity, 'fixture', 'a')['storage_destination'] == 'a'
+    assert b.export(identity, 'fixture', 'b')['storage_destination'] == 'b'
+    with pytest.raises(PermissionError): b.store_derived(source_a, 'synthetic-v1', {}, 'fixture')
+    with pytest.raises(PermissionError): b.export(identity, 'fixture', 'a')
+    assert count(engine, research_raw) == 2
+
+
 def test_concurrent_verified_link_binding_is_idempotent(pg_database):
     db=pg_database;db['migrate']();db['grants']()
     links=ParticipantLinks(db['engine']('de03_links'),authoriser=lambda *args:True)
