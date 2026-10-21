@@ -1,0 +1,4 @@
+# Preserve the exact bytes used by the source SHA256 checks in v31_sources.json.
+# Without this, a checkout with core.autocrlf=true rewrites SCORING_GOLDEN.json
+# to CRLF and test_contract_portability fails on Windows while passing on Linux.
+SCORING_GOLDEN.json -text
