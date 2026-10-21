@@ -205,3 +205,12 @@ class MockRedcapClient:
         )
 
         return demographics + instrument_records + distress_records + wp6_records
+
+    def export_v31_baseline(self) -> dict[str, Any]:
+        """Export the V3.1 baseline screening dataset from the mock REDCap API.
+
+        REDCAP_API_URL is configured with the service ``/api`` prefix, so only
+        the resource path is appended here.
+        """
+        return self._get("/v31/baseline")
+

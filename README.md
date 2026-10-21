@@ -1,184 +1,154 @@
-# NEPS Data Platform
+# NEPS data platform
 
-The NEPS Data Platform is the core data pipeline and analytics engine for the NEPS Digital youth mental health study. It provides:
+This Python pipeline receives authorised REDCap exports into retained source
+revisions. NDS registration, NDS IDs and purpose consent apply to the separate
+downstream processing stage. They do not filter source receipt.
 
-- **ETL Pipeline**: Extract, transform, and load data from REDCap (or mock REDCap) into a centralized PostgreSQL data warehouse
-- **Data Normalization**: Structured data models and SQL views optimized for downstream analytics
-- **Sync State Management**: Track sync history and incremental updates
-- **Analytics Toolkit**: Pre-built scripts for data quality checks, trend analysis, and risk modeling
+## Current integration
 
-## Table of Contents
+The V3.1 handover adds the source connector, contracts, intake/history/queue,
+participant-link storage, downstream repository, provisional scorer and completion
+review. Migration `002_independent_source_intake` adds nine tables. Schema creation
+is explicit. Constructing a collector does not migrate the database.
 
-1. [Quick Start](#quick-start)
-2. [Architecture Overview](#architecture-overview)
-3. [Environment Configuration](#environment-configuration)
-4. [CLI Usage](#cli-usage)
-5. [Testing](#testing)
-6. [Docker Build](#docker-build)
-7. [Contributing](#contributing)
+`SOURCE_INTAKE_ENABLED` defaults to `false`. Configuration alone does not prove
+real export or destination permission. The source owner must verify service,
+project and destination rights before activation. PostgreSQL migrations, live API
+behaviour and operational permissions require separate acceptance evidence.
 
-## Quick Start
+The data engineer approved retirement of legacy fixed-table sync and distress
+analysis on 15 October 2026. Both entry points fail before data access. The old
+sync could discard fields, overwrite history and miss corrections. The old
+analysis used an unapproved threshold and replaced or dropped its result table.
+Retirement does not delete existing tables or records. Legacy loading helpers and
+mock adapter remain for compatibility tests; collection does not call them.
 
-### Prerequisites
+## Local Python environment
 
-- Python 3.10+
-- PostgreSQL 15+
-- Docker (optional, for containerized deployment)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/NEPSDigitalSystem/neps-data-platform.git
-   cd neps-data-platform
-   ```
-
-2. **Set up a virtual environment**
-   ```bash
-   python -m venv .venv
-   
-   # Windows
-   .venv\Scripts\activate
-   
-   # Linux/Mac
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt -r requirements-dev.txt
-   ```
-
-4. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your database and REDCap credentials
-   ```
-
-5. **Run database migrations**
-   ```bash
-   python -m etl.main migrate
-   ```
-
-6. **Run initial sync**
-   ```bash
-   python -m etl.main sync --full
-   ```
-
-## Architecture Overview
-
-The NEPS Data Platform follows a modular ETL architecture:
-
-```
-┌───────────────┐
-│  REDCap API   │
-│  (or Mock)    │
-└───────┬───────┘
-        │ Extract
-        ▼
-┌──────────────────────┐
-│  Extract Layer       │
-│  - Client Factory    │
-│  - Metadata Parser   │
-│  - Record Fetch      │
-└───────┬──────────────┘
-        │ Transform
-        ▼
-┌──────────────────────┐
-│ Transform Layer      │
-│  - Normalizer        │
-│  - Schema Mapping    │
-│  - Type Coercion     │
-└───────┬──────────────┘
-        │ Load
-        ▼
-┌──────────────────────┐
-│  Load Layer          │
-│  - Upsert Logic      │
-│  - Sync State        │
-│  - SQL Views         │
-└───────┬──────────────┘
-        │
-        ▼
-┌──────────────────────┐
-│ PostgreSQL Data      │
-│ Warehouse            │
-└──────────────────────┘
-```
-
-## Environment Configuration
-
-| Variable               | Description                                                                 |
-|------------------------|-----------------------------------------------------------------------------|
-| `DATABASE_URL`         | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/db`) |
-| `DATABASE_URL_FILE`    | Path to file containing database URL (for production secrets)              |
-| `REDCAP_API_URL`       | Mock or production REDCap base URL                                         |
-| `REDCAP_API_TOKEN`     | API token (required when `REDCAP_MOCK_ENABLED=false`)                       |
-| `REDCAP_API_TOKEN_FILE`| Path to file containing REDCap API token (for production secrets)           |
-| `REDCAP_MOCK_ENABLED`  | `true` for mock API, `false` for real REDCap                               |
-| `REDCAP_PROJECT_ID`    | Project identifier stored in sync state                                    |
-
-## CLI Usage
+Use an isolated environment and the declared dependency files:
 
 ```bash
-python -m etl.main <command> [options]
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-### Available Commands
-
-| Command                                   | Description                                                         |
-|-------------------------------------------|---------------------------------------------------------------------|
-| `health`                                  | Check database and REDCap connectivity                              |
-| `migrate`                                 | Apply database migrations                                           |
-| `sync`                                    | Run sync operation (incremental in production, full in mock mode)   |
-| `sync --full`                             | Full sync refresh (reloads all records)                            |
-| `sync --metadata-only`                    | Sync only metadata (no records)                                    |
-| `sync --dry-run`                          | Extract data without writing to the database                       |
-
-### Examples
+CI tests Python 3.11 and 3.14. The container uses Python 3.14. The supplied
+dictionary, workbook, ordered map, country displays and independent scoring
+cases are under `tests/fixtures`. Their original SHA256 values are checked.
+Normal tests run directly from any checkout:
 
 ```bash
-# Check system health
-python -m etl.main health
-
-# Full refresh from REDCap
-python -m etl.main sync --full
-
-# Dry run to preview what would be synced
-python -m etl.main sync --dry-run
+.venv/bin/python -m pytest tests -q
 ```
 
-## Testing
+Run with synthetic settings and no inherited real secret-file configuration.
+Without explicit database configuration, PostgreSQL cases skip. Those skips do
+not prove database behaviour. To execute every test against a new local synthetic
+PostgreSQL 18 container, with migrations, concurrency, privileges and recovery:
 
-Run all unit tests:
 ```bash
-pytest tests/ -v
+.venv/bin/python scripts/verify_postgresql.py --evidence-dir /tmp/neps-postgresql-review
 ```
 
-Test coverage:
+This command needs Docker and a new evidence directory. It uses a pinned image,
+publishes only on loopback, creates no permanent volume, and removes its own
+container afterward. It never reads an existing database URL or source token.
+The synthetic instance uses trust authentication only within that disposable
+scope. CI runs the same procedure and rejects skipped tests. Injected source/NDS
+policies still do not verify actual service permissions.
+
+Contract generation records relative source names. Moving the checkout no longer
+changes the contract or scoring version. Normalising the former absolute paths
+changes the contract hash once; previously retained hashes/results remain intact.
+The dictionary, source-file hashes and scientific rules did not change.
+
+## Source intake configuration
+
+Use the existing approved secret store and mounted-file references. Never commit
+credentials or include their values in commands or logs. Source activation needs
+reviewed database migrations and actual source/destination permission evidence.
+
+| Setting | Purpose |
+| --- | --- |
+| `DATABASE_URL_FILE` | Mounted file containing a complete database URL |
+| `WAREHOUSE_SCHEMA` | Explicit approved schema for V3.1 tables and Alembic history; required for PostgreSQL |
+| `REDCAP_API_URL` | Verified HTTPS API endpoint |
+| `REDCAP_API_TOKEN_FILE` | Mounted source service token |
+| `REDCAP_MOCK_ENABLED` | Must be `false` for independent source collection |
+| `REDCAP_PROJECT_ID` | Verified source project namespace |
+| `SOURCE_INTAKE_ENABLED` | Explicit activation, default `false` |
+| `SOURCE_DESTINATION` | Approved source store destination |
+| `SOURCE_SERVICE_IDENTITY` | Verified collector identity |
+| `SOURCE_EVENT_MODE` | `auto` preserves native event/repeat context; strict modes need verified configuration |
+
+The source workflow exports the complete authorised project scope, including
+partial responses and additional fields. It retains payloads and metadata before
+interpretation. Full reconciliation supports late corrections. Missing records
+produce visibility audit markers and never imply withdrawal or deletion.
+
+## Commands
+
 ```bash
-pytest tests/ --cov=etl --cov-report=html
+python -m etl.main --help
 ```
 
-## Docker Build
+| Command | Behaviour |
+| --- | --- |
+| `collect-source` | Full source receipt when explicitly enabled and configured |
+| `sync` or `sync --full` | Compatibility alias for source receipt when enabled; otherwise exits 1 |
+| `sync --metadata-only` or `sync --dry-run` | Exits 1 without collection or database work |
+| `analyze` | Retired, exits 1 without reading configuration or data |
+| `health` | Explicit connectivity check, requires an approved environment |
+| `migrate` | Explicit database migration, requires reviewed SQL and an approved environment |
 
-Build the Docker image:
+The downstream queue, participant-link and policy interfaces are libraries.
+No worker or requeue CLI is supplied yet. Backend owners provide trusted identity
+and purpose-consent services. Scientific owners provide applicability decisions.
+The supplied scorer remains provisional and preserves unavailable states.
+
+## Migration and container review
+
+Review migration history and offline SQL inside an isolated synthetic environment:
+
 ```bash
-docker build -t neps-data-platform:latest .
+python -m alembic history
+python -m alembic upgrade head --sql
 ```
 
-Verify the image is built correctly (no dev files included):
+Full upgrade SQL includes migration 001. Review the revision range and schema/search
+path with the DBA before execution. Migration 001's destructive downgrade is not
+a recovery procedure. Migration 002 refuses destructive rollback with retained data.
+
 ```bash
-docker run --rm neps-data-platform:latest ls /app
+docker build -t neps-data-platform:review .
 ```
 
-## Contributing
+A container build is separate evidence. The current image command has no CLI
+subcommand, so the runtime owner must provide a reviewed invocation. No deployment
+or scheduler activation follows from a local test pass.
 
-1. Fork the repository
-2. Create a feature branch
-3. Write tests
-4. Submit a pull request
+## DE03 storage review
 
-## License
+Migrations 001 and 002 remain frozen. Revision 003 adds eleven nullable legacy
+columns and rejects incompatible manual repairs. Revision 004 scopes research
+revisions by storage destination and adds intake-head, revision and queue
+constraints. Both require reviewed forward recovery rather than destructive
+automatic downgrade. PostgreSQL writers use transaction-scoped identity locks;
+claims use skip-locked row locking.
 
-This project is licensed under the MIT License.
+Use the approved schema through `WAREHOUSE_SCHEMA`. The DBA must provision it
+and check existing Alembic history first. Runtime Core queries qualify their
+tables through this setting. Migration 002 resolves its unqualified names with
+an explicit transaction-local search path. History in another schema blocks
+execution instead of silently moving or restarting the revision chain. Bare
+PostgreSQL URLs select the declared psycopg2 driver.
+
+`ops/de03_role_grants.sql` is a candidate privilege specification for DBA review.
+Runtime roles must not own the tables or inherit the owner. Raw and audit rows
+receive no UPDATE, DELETE or TRUNCATE grants. These grants do not implement
+per-project row-level access or prove live source permissions.
+
+PostgreSQL acceptance tests are under `tests/postgresql`. They require explicit
+synthetic scope and a URL-file reference. Without that configuration they skip,
+and a skipped check is not a PostgreSQL pass. Recovery acceptance also needs the
+DBA's procedure and agreed recovery targets.

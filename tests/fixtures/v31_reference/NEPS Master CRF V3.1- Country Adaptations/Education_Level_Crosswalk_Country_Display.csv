@@ -1,0 +1,25 @@
+﻿country,source_field,NEPS_common_code,display_label,comparability,verified_reference
+Ghana,school_level,1,Never attended,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,2,Primary,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,3,Junior High School (JHS),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,4,Senior High School (SHS),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,5,Technical/vocational (TVET),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,6,Tertiary,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,7,Postgraduate,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Ghana,school_level,8,Other,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,GH_EDU
+Sierra Leone,school_level,1,Never attended,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,2,Primary,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,3,Junior Secondary School (JSS),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,4,Senior Secondary School (SSS),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,5,Technical/vocational,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,6,Tertiary,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,7,Postgraduate,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Sierra Leone,school_level,8,Other,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,SL_EDU
+Tanzania,school_level,1,Never attended,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,2,Primary (Standards I–VII),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,3,Lower secondary (Forms I–IV),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,4,Advanced secondary (Forms V–VI),Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,5,Technical/vocational,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,6,Tertiary,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,7,Postgraduate,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
+Tanzania,school_level,8,Other,Broad NEPS-level grouping only; equivalence of grades/programmes requires study crosswalk,TZ_EDU
