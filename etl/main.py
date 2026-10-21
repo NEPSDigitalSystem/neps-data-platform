@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 import structlog
@@ -8,6 +9,7 @@ from alembic import command
 from alembic.config import Config
 
 from etl.config import get_settings
+from etl.load.db import create_db_engine
 from etl.sync.orchestrator import SyncOrchestrator
 
 structlog.configure(
@@ -39,6 +41,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     source_parser = subparsers.add_parser("collect-source", help="Receive all REDCap data independently of NDS registration/consent")
     source_parser.set_defaults(func=cmd_collect_source)
+
+    v31_parser = subparsers.add_parser("ingest-v31", help="Ingest V3.1 baseline data from the mock REDCap source")
+    v31_parser.set_defaults(func=cmd_ingest_v31)
 
     analyze_parser = subparsers.add_parser("analyze", help="Retired distress analysis; returns failure without data access")
     analyze_parser.set_defaults(func=cmd_analyze)
@@ -91,6 +96,19 @@ def cmd_collect_source(args: argparse.Namespace) -> int:
         return 1
     logger.info("source_collection_completed", received=result['received'],
                 metadata_sha256=result['metadata_sha256'], drift_count=len(result['contract_drift']))
+    return 0
+
+
+def cmd_ingest_v31(args: argparse.Namespace) -> int:
+    from etl.ingest_v31_simple import ingest_v31_baseline
+    try:
+        settings = get_settings()
+        result = ingest_v31_baseline(settings, create_db_engine(settings))
+    except Exception:
+        logger.error("v31_ingestion_failed", reason="source_or_store_unavailable")
+        return 1
+    logger.info("v31_ingestion_complete", **result)
+    print(json.dumps(result, indent=2))
     return 0
 
 
