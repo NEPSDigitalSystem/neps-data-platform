@@ -60,7 +60,7 @@ jobs:
         run: python scripts/verify_postgresql.py --evidence-dir /tmp/neps-postgresql-evidence
       - name: Save PostgreSQL test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: postgresql-python-${{ matrix.python }}
           path: /tmp/neps-postgresql-evidence
