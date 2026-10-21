@@ -1,0 +1,6 @@
+# Preserve the exact bytes used by the source SHA256 checks.
+# Without this, a checkout with core.autocrlf=true rewrites fixtures
+# to CRLF and test_contract_portability fails on Windows while passing on Linux.
+*.json text eol=lf
+*.csv text eol=lf
+*.zip binary
