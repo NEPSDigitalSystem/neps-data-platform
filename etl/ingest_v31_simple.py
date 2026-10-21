@@ -23,7 +23,7 @@ from etl.scoring.v31 import Scorer
 
 logger = structlog.get_logger(__name__)
 
-CONTRACT_PATH = Path(__file__).parents[1] / "contracts" / "data_contract_v31.json"
+CONTRACT_PATH = Path(__file__).parent / "contracts" / "data_contract_v31.json"
 
 
 def load_v31_contract() -> dict[str, Any]:
