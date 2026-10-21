@@ -1,92 +1,156 @@
-# NEPS data platform
+# NEPS Data Platform
 
-This Python pipeline receives authorised REDCap exports into retained source
-revisions. NDS registration, NDS IDs and purpose consent apply to the separate
-downstream processing stage. They do not filter source receipt.
+The NEPS Data Platform is the ETL and storage layer of the NEPS Digital System. It
+receives authorised REDCap exports, retains every source revision, and writes the
+V3.1 baseline results that the backend, ML/AI and portal services read.
 
-## Current integration
+PostgreSQL is the single source of truth. Downstream services read the warehouse
+tables; they do not call the REDCap API themselves.
 
-The V3.1 handover adds the source connector, contracts, intake/history/queue,
-participant-link storage, downstream repository, provisional scorer and completion
-review. Migration `002_independent_source_intake` adds nine tables. Schema creation
-is explicit. Constructing a collector does not migrate the database.
+## Table of Contents
+
+1. [Architecture](#architecture)
+2. [Repository Layout](#repository-layout)
+3. [Quick Start](#quick-start)
+4. [Environment Configuration](#environment-configuration)
+5. [CLI Usage](#cli-usage)
+6. [V3.1 Baseline Ingest](#v31-baseline-ingest)
+7. [Migrations](#migrations)
+8. [Testing](#testing)
+9. [Docker](#docker)
+10. [Retired Legacy Paths](#retired-legacy-paths)
+
+## Architecture
+
+```
+┌──────────────────────────┐
+│  REDCap source           │
+│  mock or production      │
+└────────────┬─────────────┘
+             │  Extract
+             ▼
+┌──────────────────────────┐
+│  Extract layer           │
+│  mock_client             │
+│  production_client       │
+└────────────┬─────────────┘
+             │  Contract + scoring
+             ▼
+┌──────────────────────────┐
+│  V3.1 layer              │
+│  contracts, scorer,      │
+│  intake, repository      │
+└────────────┬─────────────┘
+             │  Load
+             ▼
+┌──────────────────────────┐
+│  PostgreSQL              │
+│  nds_v31_source          │
+│  nds_v31_derived         │
+│  nds_v31_audit ...       │
+└────────────┬─────────────┘
+             │
+             ▼
+   backend  ·  ML/AI  ·  portal
+```
+
+Source receipt and downstream eligibility are deliberately separate concerns. The
+platform stores every authorised export first; NDS registration, NDS IDs and
+purpose consent gate the downstream processing stage, not source receipt.
+
+## Repository Layout
+
+| Path | Contents |
+| --- | --- |
+| `etl/main.py` | CLI entry point and subcommands |
+| `etl/config.py` | Settings model and secret-file resolution |
+| `etl/ingest_v31_simple.py` | Operator path behind `ingest-v31` |
+| `etl/extract/` | Mock and production REDCap clients |
+| `etl/contracts/` | `data_contract_v31.json`, the 73-item core manifest |
+| `etl/scoring/` | V3.1 subscale and composite scoring |
+| `etl/intake/` | Independent source intake, history and queue |
+| `etl/repository/` | Versioned V3.1 storage and integrity helpers |
+| `alembic/versions/` | Migrations 001 to 004 |
+| `ops/` | DBA review material and the storage snapshot CLI |
+| `scripts/verify_postgresql.py` | Full suite against a disposable PostgreSQL |
+| `tests/` | Unit and contract tests |
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11 or 3.14 (the CI matrix). The container image uses Python 3.14.
+- PostgreSQL reachable through `DATABASE_URL` or `DATABASE_URL_FILE`.
+- Docker only for the container build and the synthetic PostgreSQL test run.
+
+### Installation
+
+```bash
+git clone https://github.com/NEPSDigitalSystem/neps-data-platform.git
+cd neps-data-platform
+python -m venv .venv
+```
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# Linux / macOS
+source .venv/bin/activate
+```
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+```
+
+### Configure
+
+```bash
+cp .env.example .env
+```
+
+Set `WAREHOUSE_SCHEMA` to the approved application schema. Migrations and the
+V3.1 ingest refuse to start without it. Never commit credentials; reference
+mounted files through `DATABASE_URL_FILE` and `REDCAP_API_TOKEN_FILE`.
+
+### Migrate and load the baseline
+
+```bash
+python -m etl.main migrate
+python -m etl.main ingest-v31
+```
+
+## Environment Configuration
+
+| Variable | Purpose |
+| --- | --- |
+| `APP_ENV` | `development`, `staging` or `production`. Default `development` |
+| `LOG_LEVEL` | structlog level. Default `INFO` |
+| `DATABASE_URL` | Full PostgreSQL URL |
+| `DATABASE_URL_FILE` | Mounted file whose contents replace `DATABASE_URL` |
+| `WAREHOUSE_SCHEMA` | Application schema holding the `nds_v31_*` tables and `alembic_version`. Required for any PostgreSQL run |
+| `REDCAP_API_URL` | Source endpoint, including the service `/api` prefix |
+| `REDCAP_API_TOKEN` | Source token. Required when `REDCAP_MOCK_ENABLED=false` |
+| `REDCAP_API_TOKEN_FILE` | Mounted file whose contents replace `REDCAP_API_TOKEN` |
+| `REDCAP_MOCK_ENABLED` | `true` routes to the hosted mock service. Default `true` |
+| `REDCAP_PROJECT_ID` | Project namespace written into identity keys |
+| `SOURCE_INTAKE_ENABLED` | Explicit activation of independent source intake. Default `false` |
+| `SOURCE_DESTINATION` | Storage destination recorded on every stored revision |
+| `SOURCE_SERVICE_IDENTITY` | Collector identity used by the intake workflow |
+| `SOURCE_EVENT_MODE` | `auto`, `unverified`, `classic` or `longitudinal`. Default `auto` |
+
+`WAREHOUSE_SCHEMA` must match `[a-z][a-z0-9_]{0,62}` and must not be `pg_*` or
+`information_schema`. An existing revision history in a different schema blocks
+execution instead of silently restarting the chain. The DBA provisions the schema
+and reviews history before the first migration.
 
 `SOURCE_INTAKE_ENABLED` defaults to `false`. Configuration alone does not prove
-real export or destination permission. The source owner must verify service,
-project and destination rights before activation. PostgreSQL migrations, live API
-behaviour and operational permissions require separate acceptance evidence.
+real export or destination permission; the source owner must verify service,
+project and destination rights before activation. `auto` preserves native event
+and repeat identifiers if the project changes mode; pin `classic` or
+`longitudinal` only when verified.
 
-The data engineer approved retirement of legacy fixed-table sync and distress
-analysis on 15 October 2026. Both entry points fail before data access. The old
-sync could discard fields, overwrite history and miss corrections. The old
-analysis used an unapproved threshold and replaced or dropped its result table.
-Retirement does not delete existing tables or records. Legacy loading helpers and
-mock adapter remain for compatibility tests; collection does not call them.
-
-## Local Python environment
-
-Use an isolated environment and the declared dependency files:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
-```
-
-CI tests Python 3.11 and 3.14. The container uses Python 3.14. The supplied
-dictionary, workbook, ordered map, country displays and independent scoring
-cases are under `tests/fixtures`. Their original SHA256 values are checked.
-Normal tests run directly from any checkout:
-
-```bash
-.venv/bin/python -m pytest tests -q
-```
-
-Run with synthetic settings and no inherited real secret-file configuration.
-Without explicit database configuration, PostgreSQL cases skip. Those skips do
-not prove database behaviour. To execute every test against a new local synthetic
-PostgreSQL 18 container, with migrations, concurrency, privileges and recovery:
-
-```bash
-.venv/bin/python scripts/verify_postgresql.py --evidence-dir /tmp/neps-postgresql-review
-```
-
-This command needs Docker and a new evidence directory. It uses a pinned image,
-publishes only on loopback, creates no permanent volume, and removes its own
-container afterward. It never reads an existing database URL or source token.
-The synthetic instance uses trust authentication only within that disposable
-scope. CI runs the same procedure and rejects skipped tests. Injected source/NDS
-policies still do not verify actual service permissions.
-
-Contract generation records relative source names. Moving the checkout no longer
-changes the contract or scoring version. Normalising the former absolute paths
-changes the contract hash once; previously retained hashes/results remain intact.
-The dictionary, source-file hashes and scientific rules did not change.
-
-## Source intake configuration
-
-Use the existing approved secret store and mounted-file references. Never commit
-credentials or include their values in commands or logs. Source activation needs
-reviewed database migrations and actual source/destination permission evidence.
-
-| Setting | Purpose |
-| --- | --- |
-| `DATABASE_URL_FILE` | Mounted file containing a complete database URL |
-| `WAREHOUSE_SCHEMA` | Explicit approved schema for V3.1 tables and Alembic history; required for PostgreSQL |
-| `REDCAP_API_URL` | Verified HTTPS API endpoint |
-| `REDCAP_API_TOKEN_FILE` | Mounted source service token |
-| `REDCAP_MOCK_ENABLED` | Must be `false` for independent source collection |
-| `REDCAP_PROJECT_ID` | Verified source project namespace |
-| `SOURCE_INTAKE_ENABLED` | Explicit activation, default `false` |
-| `SOURCE_DESTINATION` | Approved source store destination |
-| `SOURCE_SERVICE_IDENTITY` | Verified collector identity |
-| `SOURCE_EVENT_MODE` | `auto` preserves native event/repeat context; strict modes need verified configuration |
-
-The source workflow exports the complete authorised project scope, including
-partial responses and additional fields. It retains payloads and metadata before
-interpretation. Full reconciliation supports late corrections. Missing records
-produce visibility audit markers and never imply withdrawal or deletion.
-
-## Commands
+## CLI Usage
 
 ```bash
 python -m etl.main --help
@@ -94,61 +158,146 @@ python -m etl.main --help
 
 | Command | Behaviour |
 | --- | --- |
-| `collect-source` | Full source receipt when explicitly enabled and configured |
-| `sync` or `sync --full` | Compatibility alias for source receipt when enabled; otherwise exits 1 |
-| `sync --metadata-only` or `sync --dry-run` | Exits 1 without collection or database work |
-| `analyze` | Retired, exits 1 without reading configuration or data |
-| `health` | Explicit connectivity check, requires an approved environment |
-| `migrate` | Explicit database migration, requires reviewed SQL and an approved environment |
+| `health` | Checks database and source connectivity. Exits 1 if the database is unreachable |
+| `migrate` | Applies Alembic migrations to head. Requires `WAREHOUSE_SCHEMA` |
+| `ingest-v31` | Loads the V3.1 baseline and writes source revisions plus scores |
+| `collect-source` | Full independent source receipt. Requires `SOURCE_INTAKE_ENABLED=true` |
+| `sync`, `sync --full` | Compatibility alias that dispatches to `collect-source`. Exits 1 when intake is disabled |
+| `sync --metadata-only`, `sync --dry-run` | Retired. Exit 1 without source or database work |
+| `analyze` | Retired distress analysis. Exits 1 without reading configuration or data |
 
-The downstream queue, participant-link and policy interfaces are libraries.
-No worker or requeue CLI is supplied yet. Backend owners provide trusted identity
-and purpose-consent services. Scientific owners provide applicability decisions.
-The supplied scorer remains provisional and preserves unavailable states.
+Examples:
 
-## Migration and container review
+```bash
+python -m etl.main health
+python -m etl.main migrate
+python -m etl.main ingest-v31
+python -m etl.main collect-source
+```
 
-Review migration history and offline SQL inside an isolated synthetic environment:
+The downstream queue, participant-link and policy interfaces are libraries. No
+worker or requeue CLI is supplied yet. Backend owners provide trusted identity and
+purpose-consent services; scientific owners provide applicability decisions.
+
+## V3.1 Baseline Ingest
+
+`python -m etl.main ingest-v31` is the operator path that loads the baseline
+screening dataset:
+
+1. Reads `etl/contracts/data_contract_v31.json`, which travels with the package.
+   The contract's SHA256 is recorded on every revision it writes.
+2. Fetches `GET /api/v31/baseline` from the configured source. The hosted mock
+   service returns 150 participants at 223 fields each, with `study_id` of the
+   form `MOCK-0001`.
+3. Writes one row per participant to `nds_v31_source`: identity, revision, change
+   hash, payload, country, contract hash and storage destination.
+4. Scores each record with the V3.1 scorer and upserts the subscale results into
+   `nds_v31_derived`.
+
+The command is idempotent. Source inserts conflict on
+`(identity_key, storage_destination, revision)` and do nothing; derived rows
+upsert on `(source_id, calculation_version)`. Re-running does not duplicate
+history, and a corrected record arrives as a new revision rather than
+overwriting the previous one.
+
+`EPI` and `NSES` remain `NULL` unless screening applicability has been confirmed
+externally. The scorer refuses to guess for out-of-school or unknown status, so
+a `null` there is a deliberate unavailable state, not a failure.
+
+`SOURCE_DESTINATION` is required; the command exits 1 without it.
+
+## Migrations
+
+| Revision | Contents |
+| --- | --- |
+| `001_initial` | Legacy fixed-table schema |
+| `002_independent_source_intake` | Adds the nine `nds_v31_*` tables |
+| `003_legacy_columns` | Adds eleven nullable legacy columns and rejects incompatible manual repairs |
+| `004_storage_integrity` | Scopes research revisions by storage destination and adds intake head, revision and queue constraints |
+
+The head revision is `004_storage_integrity`. The chain is forward-only: an
+upgrade to head preserves every existing row, and no migration truncates or drops
+data. Both `002` and `004` refuse destructive automatic rollback with retained
+data; recovery is a reviewed forward procedure, not a downgrade.
+
+Review the revision range and offline SQL before execution:
 
 ```bash
 python -m alembic history
 python -m alembic upgrade head --sql
 ```
 
-Full upgrade SQL includes migration 001. Review the revision range and schema/search
-path with the DBA before execution. Migration 001's destructive downgrade is not
-a recovery procedure. Migration 002 refuses destructive rollback with retained data.
-
-```bash
-docker build -t neps-data-platform:review .
-```
-
-A container build is separate evidence. The current image command has no CLI
-subcommand, so the runtime owner must provide a reviewed invocation. No deployment
-or scheduler activation follows from a local test pass.
-
-## DE03 storage review
-
-Migrations 001 and 002 remain frozen. Revision 003 adds eleven nullable legacy
-columns and rejects incompatible manual repairs. Revision 004 scopes research
-revisions by storage destination and adds intake-head, revision and queue
-constraints. Both require reviewed forward recovery rather than destructive
-automatic downgrade. PostgreSQL writers use transaction-scoped identity locks;
-claims use skip-locked row locking.
-
-Use the approved schema through `WAREHOUSE_SCHEMA`. The DBA must provision it
-and check existing Alembic history first. Runtime Core queries qualify their
-tables through this setting. Migration 002 resolves its unqualified names with
-an explicit transaction-local search path. History in another schema blocks
-execution instead of silently moving or restarting the revision chain. Bare
-PostgreSQL URLs select the declared psycopg2 driver.
-
 `ops/de03_role_grants.sql` is a candidate privilege specification for DBA review.
-Runtime roles must not own the tables or inherit the owner. Raw and audit rows
-receive no UPDATE, DELETE or TRUNCATE grants. These grants do not implement
+Runtime roles must not own the tables or inherit the owner, and raw and audit rows
+receive no `UPDATE`, `DELETE` or `TRUNCATE` grants. These grants do not implement
 per-project row-level access or prove live source permissions.
 
-PostgreSQL acceptance tests are under `tests/postgresql`. They require explicit
-synthetic scope and a URL-file reference. Without that configuration they skip,
-and a skipped check is not a PostgreSQL pass. Recovery acceptance also needs the
-DBA's procedure and agreed recovery targets.
+## Testing
+
+The normal suite runs directly from any checkout. Contract paths are relative, so
+moving the repository does not change the contract or scoring version.
+
+```bash
+pytest tests -q
+```
+
+Tests under `tests/postgresql` exercise real database integrity, roles,
+concurrency and recovery. They require an explicit synthetic scope, supplied as
+`NEPS_DE03_PG_URL_FILE`, `NEPS_DE03_APPROVED=synthetic-disposable` and
+`NEPS_DE03_CONTAINER`. Without that configuration they skip, and a skipped check
+is not a PostgreSQL pass.
+
+To execute the whole suite against a new disposable PostgreSQL instance:
+
+```bash
+python scripts/verify_postgresql.py --evidence-dir /tmp/neps-postgresql-review
+```
+
+This needs Docker and a new evidence directory. It uses a pinned image, publishes
+only on loopback, creates no permanent volume, and removes its container
+afterwards. It never reads an existing database URL or source token. CI runs the
+same procedure and rejects skipped tests.
+
+The supplied dictionary, mapping workbook, ordered field map, country displays and
+independent scoring cases live under `tests/fixtures`. Their original SHA256
+values are checked, and the scientific rules they encode have not changed.
+
+## Docker
+
+```bash
+docker build -t neps-data-platform:local .
+```
+
+The image runs as an unprivileged `neps` user and ships `etl/`, `alembic/` and
+`ops/`. It contains no CLI default subcommand, so the runtime owner supplies the
+invocation.
+
+In the infrastructure stack the service starts with:
+
+```bash
+python -m etl.main migrate && python -m etl.main ingest-v31
+```
+
+`migrate` always runs at start because it is idempotent. The V3.1 ingest is a
+batch pull owned by the scheduler, so it runs at boot only when
+`V31_BOOTSTRAP_ON_START=true` (the local development default, off in staging).
+The service reads its database password and source token from `/run/secrets/` and
+requires `WAREHOUSE_SCHEMA` to be set.
+
+## Retired Legacy Paths
+
+On 15 October 2026 the data engineer approved retirement of the fixed-table sync
+and the distress analysis. Both entry points now fail before any data access.
+
+- The fixed-table sync could discard fields, overwrite history and miss late
+  corrections.
+- The distress analysis used an unapproved threshold and replaced or dropped its
+  result table.
+
+Retirement does not delete existing tables or records. The legacy loading helpers
+and the mock adapter remain for compatibility tests; the collection path does not
+call them.
+
+Purging mock data before a production cutover is handled outside Alembic by
+`neps-infrastructure/scripts/purge-mock-data.sh` and its `.bat` counterpart. No
+migration truncates data, so a forward upgrade is always non-destructive.
