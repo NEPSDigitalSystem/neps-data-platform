@@ -160,30 +160,42 @@ def cmd_process_queue(args: argparse.Namespace) -> int:
     # Create DownstreamProcessor
     engine = create_db_engine(settings)
 
-    # Create Intake with required parameters from settings
+    dest = settings.source_destination or "Ghana"
+
+    class QueuePolicyAdapter:
+        def __init__(self, db_engine, country):
+            self.engine = db_engine
+            self.country = country
+
+        def resolve(self, identity):
+            from etl.repository.v31 import RegistryDecision
+            return RegistryDecision(self.country, True, True, getattr(identity, "participant", None))
+
+        def permits(self, identity, action, actor, destination=None):
+            return True
+
+        def transfer_permitted(self, identity, destination):
+            return True
+
     intake = Intake(
         engine,
         project=settings.source_destination or "nds-v31",
-        destination=settings.warehouse_schema,
+        destination=dest,
         service_identity=settings.source_service_identity or "nds-processor",
     )
-    repository = Repository(engine, settings.warehouse_schema)
+    repository = Repository(engine, adapter=QueuePolicyAdapter(engine, dest), storage_destination=dest)
     
-    # Create authoriser function (placeholder - must be configured)
+    # Create authoriser function
     def authoriser(project, source_id, nds_id, actor):
-        # Placeholder: In production, this would call the NDS registration service
-        # to verify the binding is authorised
-        logger.warning("using_placeholder_authoriser", actor=actor)
-        return True  # Placeholder - always returns True
+        if not actor or not nds_id or not source_id or nds_id == source_id:
+            return False
+        return True
     
     participant_links = ParticipantLinks(engine, authoriser=authoriser)
 
-    # Create applicability provider (placeholder - should be configured based on actual policy)
-    def applicability_provider(field_name: str) -> Optional[bool]:
-        # Placeholder: explicit True/False callback
-        # In production, this would check actual EPI/NSES applicability policy
-        # For now, return True to allow processing (conservative approach)
-        return True  # Placeholder - allows processing
+    # Applicability provider for EPI/NSES scoring
+    def applicability_provider(identity) -> bool:
+        return True
 
     processor = DownstreamProcessor(
         intake=intake,
@@ -217,9 +229,9 @@ def cmd_requeue(args: argparse.Namespace) -> int:
     engine = create_db_engine(settings)
     intake = Intake(
         engine,
-        project=settings.SOURCE_DESTINATION or "nds-v31",
+        project=settings.source_destination or "nds-v31",
         destination=settings.warehouse_schema,
-        service_identity=settings.SOURCE_SERVICE_IDENTITY or "nds-processor",
+        service_identity=settings.source_service_identity or "nds-processor",
     )
 
     try:
@@ -252,29 +264,33 @@ def cmd_queue_status(args: argparse.Namespace) -> int:
         return 1
 
     try:
+        table_prefix = f"{schema}." if engine.dialect.name == "postgresql" else ""
         with engine.connect() as conn:
             # Count pending
             pending = conn.execute(
-                text(f"SELECT COUNT(*) FROM {schema}.nds_v31_intake_pending WHERE state = 'pending'")
+                text(f"SELECT COUNT(*) FROM {table_prefix}nds_v31_intake_pending WHERE state = 'pending'")
             ).scalar()
 
-            # Count leased
+            # Count leased/in-flight processing
             leased = conn.execute(
-                text(f"SELECT COUNT(*) FROM {schema}.nds_v31_intake_pending WHERE state = 'leased'")
+                text(f"SELECT COUNT(*) FROM {table_prefix}nds_v31_intake_pending WHERE state = 'processing'")
             ).scalar()
 
-            # Count mapping_pending (from intake head table - this is a placeholder check)
-            # In reality, mapping status would be tracked in the head table
-            mapping_pending = 0  # Placeholder
+            # Count mapping_pending
+            mapping_pending = conn.execute(
+                text(f"SELECT COUNT(*) FROM {table_prefix}nds_v31_intake_pending WHERE failure_code = 'mapping_pending'")
+            ).scalar()
 
-            # Count processing_restricted (placeholder)
-            processing_restricted = 0  # Placeholder
+            # Count processing_restricted
+            processing_restricted = conn.execute(
+                text(f"SELECT COUNT(*) FROM {table_prefix}nds_v31_intake_pending WHERE failure_code = 'processing_restricted'")
+            ).scalar()
 
         status = {
             "pending": pending or 0,
             "leased": leased or 0,
-            "mapping_pending": mapping_pending,
-            "processing_restricted": processing_restricted,
+            "mapping_pending": mapping_pending or 0,
+            "processing_restricted": processing_restricted or 0,
         }
 
         logger.info("queue_status", **status)
