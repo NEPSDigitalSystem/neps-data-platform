@@ -113,7 +113,7 @@
     {
       "item": "Native Windows execution",
       "status": "NOT RUN",
-      "next_action": "Analyst applies patch and runs supplied PowerShell commands before push, or Frank approves branch publication to run Windows CI"
+      "next_action": "Publish the locally verified branch as approved by Frank, then review all Windows CI jobs before merge"
     },
     {
       "item": "17 PostgreSQL tests",
@@ -133,5 +133,9 @@
     }
   ],
   "junit_directory": "/tmp/neps-scoring-handoff-20261027",
-  "remote_push": "NOT PERFORMED; awaiting delivery route decision"
+  "remote_push": "APPROVED by Frank after local PDF verification, to obtain native Windows CI before merge",
+  "decisions": {
+    "delivery": "Push locally tested branch, then review native Windows CI before merge",
+    "NSES": "Keep formula unchanged; obtain analyst evidence and scientific clarification separately"
+  }
 }

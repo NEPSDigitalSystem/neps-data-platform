@@ -102,7 +102,9 @@ The script creates and removes its own labelled disposable synthetic database.
 ## Results and decisions
 
 Local verification completed on 27 October 2026 with Python 3.14.8 on Linux.
-No remote push has occurred.
+This section records verification completed before the first remote push. Frank
+subsequently approved publishing the tested branch to obtain native Windows CI.
+Merge remains pending review of that result.
 
 | Check | Actual result |
 | --- | --- |
@@ -148,13 +150,13 @@ golden cases does not grant scientific approval.
    patch or Git bundle and get a Windows result before publishing. The faster
    shared-review option is to publish this locally verified branch and let its
    dedicated Windows CI run before any merge. The second option needs agreement
-   because native Windows verification would happen after the push. Current
-   status is hold push pending this choice.
-2. NSES scope. Recommended action is to keep this encoding/path handoff separate,
-   retain the provisional formula, and request the missing discrepancy evidence.
-   Alternatively, hold overall analyst acceptance until the scientific owner
-   supplies and approves a rule. Neither route authorises guessing a formula or
-   changing the golden expected values to match implementation output.
+   because native Windows verification would happen after the push. Frank approved the shared-review option on 27 October 2026. Publish the
+   locally verified branch, review all Windows and Linux CI results, and keep
+   merge pending that review.
+2. NSES scope. Frank approved keeping this encoding/path handoff separate,
+   retaining the provisional formula, and requesting the missing discrepancy
+   evidence from the analyst and scientific owner. No formula or golden expected
+   value change is authorised by this engineering handoff.
 
 ## Draft reply to the analyst
 
