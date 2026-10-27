@@ -62,6 +62,29 @@ class V31ContractTests(unittest.TestCase):
                 counts[index] = counts.get(index, 0) + 1
         self.assertEqual(counts, {"EPI": 10, "ESI": 10, "SBI": 19, "MHDI": 6, "PFI": 28})
 
+    def test_saved_core_manifest_matches_verified_membership_and_provenance(self):
+        manifest = json.loads((CONTRACT.parent / "core73_manifest_v31.json")
+                              .read_text(encoding="utf-8"))
+        self.assertEqual([field["name"] for field in manifest["fields"]], EXPECTED_CORE)
+        self.assertEqual(manifest["contract_version"], self.contract["contract_version"])
+        self.assertEqual(manifest["dictionary_sha256"], self.contract["dictionary_sha256"])
+        self.assertEqual(manifest["source_hashes"], self.contract["sources"])
+        self.assertEqual(manifest["participant_linkage"], self.contract["participant_linkage"])
+        self.assertEqual(manifest["verification_scope"], self.contract["verification_scope"])
+        fields = {field["name"]: field for field in self.contract["fields"]}
+        for saved in manifest["fields"]:
+            field = fields[saved["name"]]
+            mapping = field["analysis_mapping"]
+            with self.subTest(field=saved["name"]):
+                self.assertEqual(saved, {
+                    "name": field["name"],
+                    "index": mapping["NSES_index"],
+                    "dimension": mapping["NSES_dimension"],
+                    "direction": mapping["scoring_or_direction"],
+                    "reference_period": mapping["reference_period"],
+                    "choices": field["dictionary_metadata"]["Choices, Calculations, OR Slider Labels"],
+                })
+
     def test_every_dictionary_column_preserved_and_hashed(self):
         for field in self.contract["fields"]:
             self.assertEqual(len(field["dictionary_metadata"]), 18)
