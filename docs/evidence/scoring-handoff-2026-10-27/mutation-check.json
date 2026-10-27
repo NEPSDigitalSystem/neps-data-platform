@@ -1,0 +1,26 @@
+[
+  {
+    "suite": "test_v31_scoring.py",
+    "mutation": "Remove explicit UTF-8 from contract read in memory",
+    "detected": true,
+    "error": "Unverified scoring direction"
+  },
+  {
+    "suite": "test_v31_scoring_qa.py",
+    "mutation": "Remove explicit UTF-8 from contract read in memory",
+    "detected": true,
+    "error": "Unverified scoring direction"
+  },
+  {
+    "suite": "test_v31_contract.py",
+    "mutation": "Remove explicit UTF-8 from contract read in memory",
+    "detected": true,
+    "error": "{'con[8417 chars]Plan \u00a7\u00a74,14,16\u201318', 'V2_crosswalk': '', 'V3_cr[1053493 chars]ed']} != {'con[8417 chars]Plan \u00c2\u00a7\u00c2\u00a74,14,16\u00e2\u20ac\u201c18', 'V2_crosswalk': '', 'V[1054225 c"
+  },
+  {
+    "suite": "test_v31_contract_qa.py",
+    "mutation": "Remove explicit UTF-8 from contract read in memory",
+    "detected": true,
+    "error": "Lists differ: [{'Va[77399 chars]are 0\u201330 days, or an applicable non-numeric re[88097 chars] ''}] != [{'Va[77399 chars]are 0\u00e2\u20ac\u201c30 days, or an applicable non-nume"
+  }
+]

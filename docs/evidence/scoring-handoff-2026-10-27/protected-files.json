@@ -1,0 +1,8 @@
+{
+  "etl/scoring/v31.py": true,
+  "etl/contracts/data_contract_v31.json": true,
+  "etl/contracts/core73_manifest_v31.json": true,
+  "tests/fixtures/SCORING_GOLDEN.json": true,
+  "tests/fixtures/v31_sources.json": true,
+  "source_pdf": true
+}
