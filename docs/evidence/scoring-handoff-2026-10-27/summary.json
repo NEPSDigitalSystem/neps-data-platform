@@ -111,6 +111,12 @@
   },
   "outstanding": [
     {
+      "item": "GitHub publication",
+      "status": "BLOCKED BY AUTHENTICATION",
+      "reason": "GitHub rejected configured Git credentials; no credential manager or connected GitHub integration available",
+      "next_action": "Frank signs in again with Git credentials or installs and connects GitHub with access to NEPSDigitalSystem/neps-data-platform; then retry approved push"
+    },
+    {
       "item": "Native Windows execution",
       "status": "NOT RUN",
       "next_action": "Publish the locally verified branch as approved by Frank, then review all Windows CI jobs before merge"
@@ -133,7 +139,7 @@
     }
   ],
   "junit_directory": "/tmp/neps-scoring-handoff-20261027",
-  "remote_push": "APPROVED by Frank after local PDF verification, to obtain native Windows CI before merge",
+  "remote_push": "ATTEMPTED, rejected by GitHub: Invalid username or token; no remote branch or Windows CI created",
   "decisions": {
     "delivery": "Push locally tested branch, then review native Windows CI before merge",
     "NSES": "Keep formula unchanged; obtain analyst evidence and scientific clarification separately"

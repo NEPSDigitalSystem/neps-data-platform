@@ -104,7 +104,10 @@ The script creates and removes its own labelled disposable synthetic database.
 Local verification completed on 27 October 2026 with Python 3.14.8 on Linux.
 This section records verification completed before the first remote push. Frank
 subsequently approved publishing the tested branch to obtain native Windows CI.
-Merge remains pending review of that result.
+Merge remains pending review of that result. The attempted push was rejected
+by GitHub with "Invalid username or token". No branch publication or native
+Windows CI run has occurred. Restore Git authentication or install and connect
+the GitHub integration with repository access, then retry the approved push.
 
 | Check | Actual result |
 | --- | --- |
