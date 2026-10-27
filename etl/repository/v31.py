@@ -139,7 +139,12 @@ class Repository:
         for field, component in [('redcap_event_name', identity.event),
                                  ('redcap_repeat_instrument', identity.instrument),
                                  ('redcap_repeat_instance', identity.instance)]:
-            if field in payload and payload[field] != component:
+            observed = payload.get(field)
+            # The collector accepts native integer repeat instances and uses
+            # strings only in the identity. Preserve the observed JSON value.
+            if field == 'redcap_repeat_instance' and type(observed) is int:
+                observed = str(observed)
+            if field in payload and observed != component:
                 raise AccessDenied('Source event/repeat linkage differs from trusted identity')
         if payload.get('study_id') != identity.participant:
             raise AccessDenied('Source linkage differs from trusted identity')

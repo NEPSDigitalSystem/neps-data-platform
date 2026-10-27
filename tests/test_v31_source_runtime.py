@@ -5,6 +5,7 @@ from etl.config import Settings
 from etl.intake.v31 import metadata,raw
 from etl.sync.source_runtime import build_collector,SourceServiceGrant
 from test_v31_connector import Session,Response,native_metadata
+from test_v31_workflow import env, row
 
 
 def config(**change):
@@ -56,3 +57,34 @@ def test_configured_database_engine_redacts_source_parameters_without_connecting
     assert engine.hide_parameters is True
     assert engine.echo is False
     engine.dispose()
+
+
+@pytest.mark.parametrize('instance', ['2', 2])
+def test_native_repeat_instance_survives_receipt_processing_and_export(env, instance):
+    from dataclasses import replace
+    from etl.repository.v31 import raw as research_raw, derived
+    from etl.intake.v31 import pending
+
+    engine, _, repository, transport, workflow, identity = env
+    workflow.collector.context_provider = SourceServiceGrant(
+        config(SOURCE_EVENT_MODE='auto')).context
+    source = row() | {'redcap_event_name': 'month6',
+                      'redcap_repeat_instrument': 'neps31_yeb',
+                      'redcap_repeat_instance': instance}
+    transport.rows = [source]
+    assert workflow.collector.sync(source_version='synthetic-repeat-v1')['received'] == 1
+    assert workflow.processor.process() == {'processed': 1, 'deferred': 0}
+
+    repeated = replace(identity, event='month6', instrument='neps31_yeb', instance='2')
+    exported = repository.export(repeated, 'synthetic-reviewer', 'Ghana')
+    assert exported['payload'] == source
+    assert type(exported['payload']['redcap_repeat_instance']) is type(instance)
+    with engine.connect() as connection:
+        receipt = connection.execute(select(raw)).mappings().one()
+        research = connection.execute(select(research_raw)).mappings().one()
+        score = connection.execute(select(derived.c.result)).scalar_one()
+        assert receipt['payload'] == research['payload'] == source
+        assert receipt['identity']['instance'] == research['identity']['instance'] == '2'
+        assert research['intake_revision_id'] == receipt['id']
+        assert score['intake_revision_id'] == receipt['id']
+        assert connection.execute(select(pending.c.state)).scalar_one() == 'acknowledged'

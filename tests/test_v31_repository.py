@@ -193,6 +193,18 @@ def test_source_event_repeat_mismatch_denied(setup, field):
     assert count(repo, raw) == 0
 
 
+@pytest.mark.parametrize('instance', [True, 1.0, 0, -1, '2'])
+def test_repeat_identity_comparison_rejects_other_native_values(setup, instance):
+    from dataclasses import replace
+    repo, _, identity = setup
+    repeated = replace(identity, instrument='neps31_yeb', instance='1')
+    payload = base() | {'redcap_repeat_instrument': 'neps31_yeb',
+                        'redcap_repeat_instance': instance}
+    with pytest.raises(AccessDenied):
+        repo.ingest(repeated, payload, 'synthetic-v1')
+    assert count(repo, raw) == 0
+
+
 def test_storage_destination_and_current_grant_required(setup):
     repo, policy, identity = setup
     policy.transfer = False
