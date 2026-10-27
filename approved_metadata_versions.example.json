@@ -1,0 +1,30 @@
+{
+  "metadata_versions": {
+    "516a17cc1519c2a33f1d48110edc15a2a7df4c24cba3575f1e84bfd8297e82a0": {
+      "version": "v31-reviewed-1",
+      "approved_date": "2026-10-23",
+      "approved_by": "NDS-Data-Science-Team",
+      "metadata": [
+        {
+          "Variable / Field Name": "study_id",
+          "Field Label": "Study ID",
+          "Field Type": "text",
+          "Text Validation Type": "alpha_num",
+          "Text Validation Min": "",
+          "Text Validation Max": "",
+          "Field Note": "Unique study identifier",
+          "Choices, Calculations, OR Slider Labels": "",
+          "Field Annotation": "",
+          "Branching Logic (Show field only if...)": "",
+          "Required Field?": "y",
+          "Custom Alignment": "",
+          "Question Number": "1",
+          "Matrix Group Name": "",
+          "Matrix Ranking?": "",
+          "Field Annotation": ""
+        }
+      ]
+    }
+  },
+  "_comment": "This is an example file. The keys in metadata_versions are metadata_sha256 hashes from the intake tables. New or drifted hashes MUST NOT be in this file until a scientist reviews. Unlisted hash → processor defers."
+}

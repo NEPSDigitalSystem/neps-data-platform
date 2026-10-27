@@ -19,6 +19,6 @@ def test_contract_regeneration_does_not_depend_on_checkout_location(tmp_path):
     moved = tmp_path / 'another checkout' / 'references'
     shutil.copytree(REFERENCES, moved)
     actual = build_from_sources(moved)
-    expected = json.loads((ROOT / 'etl/contracts/data_contract_v31.json').read_text())
+    expected = json.loads((ROOT / 'etl/contracts/data_contract_v31.json').read_text(encoding='utf-8'))
     assert actual == expected
     assert all(not Path(item['path']).is_absolute() for item in actual['sources'])
