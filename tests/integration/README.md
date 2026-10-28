@@ -1,13 +1,13 @@
 # Integration acceptance blueprint
 
-Prepared in L06 on 28 October 2026 for `de/local-data-engineering-tasks`, after L05 commit `eb7d653`. This is a plan with checked command names and existing focused synthetic evidence. It does not claim that L08 or L09 has run. See [implementation status](../../docs/IMPLEMENTATION_STATUS.md), [handover index](../../docs/HANDOVER_INDEX.md) and [lineage](../../docs/DATA_LINEAGE.md).
+Updated in L08 on 28 October 2026 for `de/local-data-engineering-tasks`, based on L06 commit `58d2129` and the recorded working diff. Frank accepted L07 and authorised L08 by instructing "proceed to the next". L08 disposable PostgreSQL acceptance is complete. L09 has not started. See [implementation status](../../docs/IMPLEMENTATION_STATUS.md), [handover index](../../docs/HANDOVER_INDEX.md) and [lineage](../../docs/DATA_LINEAGE.md).
 
 ## Acceptance stages and prerequisites
 
 | Stage | Preconditions | Evidence needed to finish |
 | --- | --- | --- |
-| Local synthetic checks | Correct task branch, original .venv, no real environment file, unchanged references, synthetic fixtures and injected test policies | Actual command, interpreter/dependency versions, HEAD/diff, test output and integrity checks. Full final review belongs to L07 |
-| L08 disposable PostgreSQL | Local package accepted, Docker available, pinned PostgreSQL image usable, a new output directory, no existing database supplied | Full ordinary and PostgreSQL suites with zero skips, all six SQL results versus independent expectations, concurrency/roles/recovery and cleanup records |
+| Local synthetic checks | Correct task branch, original .venv, no real environment file, unchanged references, synthetic fixtures and injected test policies | Actual command, interpreter/dependency versions, HEAD/diff, test output and integrity checks. L07 accepted at Milestone C |
+| L08 disposable PostgreSQL | Local package accepted, Docker available, pinned PostgreSQL image usable, a new output directory, no existing database supplied | Full ordinary and PostgreSQL suites with zero skips, all six SQL results versus independent expectations, concurrency/roles/recovery and cleanup records. DONE_INTEGRATION for the disposable synthetic fixture, 384 tests and 742 subtests passed, no skips |
 | L09 native source and NDS service | Owner-approved endpoint/project/DAG/destination references, actual metadata/ID/events/repeats, consent/completion evidence, authorised synthetic or explicitly approved test scope, real downstream adapters/API contract | Verified native export compatibility, receipt independent of NDS, denied/unavailable/correction/retry cases, actual mapping and purpose access, joint authorised service evidence |
 
 All local tasks stay on the same open task branch. Inspect changes and preserve other work before running checks. The following first block reads state only:
@@ -46,9 +46,9 @@ env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
   tests/postgresql --collect-only -q
 ```
 
-The dictionary command uses Python module invocation so repository imports resolve. The older direct `python scripts/build_v31_dictionary.py` invocation needs an explicit import path and is not the command used here. Collection of PostgreSQL cases runs no database fixture. Current collection has 23 cases, including six L05 reports. It is not query execution.
+The dictionary command uses Python module invocation so repository imports resolve. The older direct `python scripts/build_v31_dictionary.py` invocation needs an explicit import path and is not the command used here. Collection of PostgreSQL cases runs no database fixture. Current collection has 25 cases, including six reporting tests and two golden persistence/workflow tests. It is not query execution.
 
-For L07's full ordinary regression, choose a new local evidence path and retain the output and exit code:
+For an ordinary regression without PostgreSQL opt-in, choose a new evidence path and retain the output and exit code:
 
 ```bash
 env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
@@ -56,7 +56,7 @@ env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
   tests -q --tb=short --junitxml=/tmp/neps-l07-results-NEW.xml
 ```
 
-E05 recorded 359 ordinary tests, 742 subtests and 23 explicit PostgreSQL skips. Report the new run's actual counts. Missing or incomplete opt-in must not be mistaken for a PostgreSQL pass. Unexpected skips/failures block the applicable stage. L06 does not rerun the full suite or begin L07 merely by documenting this command.
+E05 and L07 recorded 359 ordinary tests, 742 subtests and 23 PostgreSQL skips before L08 added two database tests. A current ordinary run without opt-in would leave 25 PostgreSQL cases pending. L08's actual full PostgreSQL run passed 384 tests and 742 subtests with no skips. Missing or incomplete opt-in must not be mistaken for a database pass. Unexpected skips/failures block the applicable stage.
 
 ## Expected synthetic source-to-result sequence
 
@@ -91,7 +91,7 @@ The full-188 fixture is a known synthetic arithmetic pattern, not a clinical pro
 | Worker lease expiry, stale ack, retry and authorised requeue | One current claim, stale completion rejected, attempts/audit retained, raw unchanged | Intake suites and PostgreSQL concurrency tests |
 | Reviewed later metadata version | Process a retained deferred receipt without reimport; retain metadata/mapping/score provenance | Schema-evolution tests. Operational historical-reprocessing/current-view selection still needs an explicit tested adapter rule |
 
-## L08 execution before cleanup
+## L08 execution and retained result
 
 The existing helper creates a uniquely named `neps-de03-synthetic-*` container, pins the PostgreSQL image, publishes only to loopback, uses tmpfs rather than a permanent data volume and creates its own private temporary URL file. No existing URL/token is supplied. Docker access is the prerequisite, not a reason to substitute SQLite for PostgreSQL.
 
@@ -101,7 +101,7 @@ env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
   --evidence-dir /tmp/neps-l08-NEW
 ```
 
-Choose a new evidence directory. The helper refuses to overwrite one. Its single pytest invocation runs all ordinary tests and `tests/postgresql`, including `test_reporting_queries.py`, while the synthetic container still exists. The reporting tests execute every SQL file through the read-only helper, compare independent expectations and compare all nine storage counts/hashes before and after. A separate test attempts a write and requires the read-only transaction to reject it. Do not run SQL manually against a removed fixture or count static compilation as a database pass.
+L08 used /tmp/neps-l08-20261028/run-01, retained under TASK_ROOT/evidence/L08/run-01. Docker 29.9.2 created PostgreSQL 18.6 from the pinned image. Full regression passed 384 tests and 742 subtests with no skips in 34.88 seconds reported by pytest. Recovery counts/hashes matched across all nine tables. The helper removed neps-de03-synthetic-1b45a1646eaf, and an independent inspect confirmed its absence. The reporting.json, golden-native.json and golden-semantic.json records retain assertions and aggregate results without raw responses. For another run, choose a new evidence directory. The helper refuses to overwrite one. Its single pytest invocation runs all ordinary tests and `tests/postgresql`, including `test_reporting_queries.py`, while the synthetic container still exists. The reporting tests execute every SQL file through the read-only helper, compare independent expectations and compare all nine storage counts/hashes before and after. A separate test attempts a write and requires the read-only transaction to reject it. Do not run SQL manually against a removed fixture or count static compilation as a database pass.
 
 The prepared reporting seed has 11 research source/validated rows and 10 derivations. The selected Ghana/project/destination scope expects 8 retained revisions, 6 latest observations, 5 native participants, 4 mapped NDS participants and 1 unmapped latest record. An older Ghana revision for F cannot reappear as latest after its correction moves to Tanzania. EPI values 10 and 30 give mean/median 20 and sample SD sqrt(200); unavailable, unscored, ambiguous and malformed observations remain in the coverage counts. See the [SQL README](../../docs/sql_queries/README.md) for all categories, empty/singleton results and exact version filters.
 
@@ -136,4 +136,4 @@ There is no production worker, mapping or requeue command in this task checkout.
 | Deployment/runtime | Python image compatibility, SQL-asset packaging if used, scheduler retry/polling references and release evidence | DevOps, pending; no settings changed here |
 | Operational acceptance | Backup/recovery/retention/security/monitoring runbook references, agreed targets and named approvers | Existing DBA/DevOps/governance owners, pending production acceptance |
 
-Draft requests are in the task folder's decisions/OWNER_INPUTS.md. No messages are sent automatically. Missing service evidence blocks its L09 acceptance, not completion of this local blueprint. L07 is the next local task and still requires its own final review and Frank's acceptance.
+Draft requests are in the task folder's decisions/OWNER_INPUTS.md. No messages are sent automatically. L07 was accepted and L08 completed for the disposable synthetic fixture. L09 remains NOT_STARTED and needs the verified source, service and permission inputs above before execution. Production approval and deferred shortcut/queue repairs remain separate.

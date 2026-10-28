@@ -60,6 +60,6 @@ Permission coverage is a different measure. Its numerator requires an independen
 
 ## Acceptance and ownership
 
-Local worked examples and preparation checks run in L05. PostgreSQL execution is PENDING_POSTGRESQL until L08. The prepared fixture includes corrections, repeats, country changes, unknown codes, missingness, unmapped IDs, multiple calculation versions and missing metadata. It verifies independently expected counts and unchanged storage for the six reports. Actual source completeness and release scope remain L09.
+L05 local examples and L08 synthetic PostgreSQL execution are complete. On 28 October 2026, all six reporting tests passed within the 384-test full suite, with 742 subtests and no skips. The fixture includes corrections, repeats, country changes, unknown codes, missingness, unmapped IDs, multiple calculation versions and missing metadata. All nine storage counts/hashes match before and after the six reports. In the six selected latest observations, age is present and nonempty in 3/6, two of those three ages meet the reviewed range, EPI is available in 2/6, and 7/8 retained revisions match the expected contract. These are explicit synthetic denominators, not real participant metrics or policy thresholds. Actual source completeness and release scope remain L09.
 
 No operational alert thresholds, scientific interpretation or publication cutoffs are assigned. An owner and approved thresholds are required before adding alerts. No such input is needed to finish these local definitions.

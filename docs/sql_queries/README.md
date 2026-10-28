@@ -1,6 +1,6 @@
 # Scoped PostgreSQL reports
 
-L05 prepares these queries for L08. Status is VERIFIED_STATIC and PENDING_POSTGRESQL. SQLAlchemy compilation checks parameter names and prepares SQL, but does not validate PostgreSQL execution or query results. The six acceptance tests in `tests/postgresql/test_reporting_queries.py` remain pending until the disposable fixture runs.
+L08 executed all six reports on 28 October 2026 using disposable PostgreSQL 18.6. Status is VERIFIED_POSTGRESQL for the recorded synthetic fixture. All six reporting tests passed within the full 384-test run, with 742 subtests and no skips. Expected counts, statistics, namespace filters, read-only enforcement and nine-table integrity comparisons passed. Actual source/service and production acceptance remain separate. See the L08 evidence in TASK_ROOT and the [implementation tracker](../IMPLEMENTATION_STATUS.md).
 
 These reports read the research source, validated and derived tables described in [the lineage](../DATA_LINEAGE.md). They do not count all independently retained intake records. An unregistered source contact can remain in intake without a research row. No report here grants access, checks current NDS consent or substitutes for approved country-transfer scope. Use a database role and dataset explicitly authorised for the report.
 
@@ -80,7 +80,7 @@ env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
   tests/test_query_library.py tests/test_quality_metrics.py -q
 ```
 
-In L08, run the existing helper against a new evidence directory. It discovers the new PostgreSQL tests and runs them before removing its generated container:
+To repeat L08, run the existing helper against a new evidence directory. It runs all ordinary and PostgreSQL tests before removing its generated container:
 
 ```bash
 env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
@@ -88,4 +88,4 @@ env -i PATH="$PATH" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
   --evidence-dir /tmp/neps-l08-NEW
 ```
 
-The fixture skips only when no PostgreSQL opt-in is supplied. Incomplete, unapproved, wrong-backend and unsafe opt-ins fail. No SQLite substitute is accepted. L05 prepares independent expected values for all six queries, rank-before-country filtering, corrections, repeats, unavailable/ambiguous/malformed scores, malicious bound values, empty scopes and a nine-table before/after conservation check. Prepared expectations are not execution evidence.
+The fixture skips only when no PostgreSQL opt-in is supplied. Incomplete, unapproved, wrong-backend and unsafe opt-ins fail. No SQLite substitute is accepted. L05 prepares independent expected values for all six queries, rank-before-country filtering, corrections, repeats, unavailable/ambiguous/malformed scores, malicious bound values, empty scopes and a nine-table before/after conservation check. L08 execution evidence is TASK_ROOT/evidence/L08/run-01, including reporting.json, run.json and JUnit. The reports returned 8 retained Ghana revisions, 6 latest observations, 5 native participants, 4 mapped NDS participants and 1 unmapped observation. EPI had 2 available values, mean/median 20 and sample SD sqrt(200). The exact generated container was removed and independently confirmed absent. Static compilation alone still does not prove database execution.

@@ -4,7 +4,10 @@ Fixtures include deliberately malformed legacy score/raw values. Direct owner
 inserts here exercise reporting, not approved ingestion or scientific rules.
 """
 from dataclasses import asdict
+import json
 import math
+import os
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select, text, update
@@ -109,6 +112,14 @@ def test_all_six_reports_and_no_storage_changes(reporting_db):
     assert set(samples[0])=={'sample_ordinal','revision','contract_version','contract_hash','payload_key_count',
                             'metadata_hash_present','intake_link_present','nds_mapping_present'}
     assert storage_snapshot(engine, SCHEMA)==before
+    evidence = os.environ.get('NEPS_DE03_RECOVERY_EVIDENCE')
+    if evidence:
+        Path(evidence).with_name('reporting.json').write_text(json.dumps(dict(
+            scope='Disposable L08 synthetic reporting fixture only',
+            data_counts=counts, scoring_distribution=scores, null_analysis=nulls,
+            country_distribution=countries, contract_version_check=versions,
+            sample_records=samples, before=before, after=storage_snapshot(engine, SCHEMA),
+        ), default=str, indent=2)+'\n')
 
 
 def test_project_destination_country_and_repeat_scope(reporting_db):
