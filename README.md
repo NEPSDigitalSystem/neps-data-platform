@@ -1,11 +1,21 @@
 # NEPS Data Platform
 
-The NEPS Data Platform is the ETL and storage layer of the NEPS Digital System. It
-receives authorised REDCap exports, retains every source revision, and writes the
-V3.1 baseline results that the backend, ML/AI and portal services read.
+The NEPS Data Platform implements independent REDCap source receipt, versioned
+PostgreSQL storage and provisional V3.1 scoring. The supported collector and
+separate NDS processing libraries have synthetic local evidence. Actual source,
+backend, ML/AI and portal service acceptance remains owner work.
 
-PostgreSQL is the single source of truth. Downstream services read the warehouse
-tables; they do not call the REDCap API themselves.
+`ingest-v31` is a development/testing shortcut with deferred history, policy,
+schema and identifier repairs. Use the current implementation status to assess
+each component before an authorised integration run.
+
+## Local engineering documents
+
+- [Implementation status and acceptance boundaries](docs/IMPLEMENTATION_STATUS.md)
+- [Verified 83-entry handover index](docs/HANDOVER_INDEX.md)
+- [Integration blueprint and environment handover](tests/integration/README.md)
+- [Lineage](docs/DATA_LINEAGE.md), [quality rules](docs/DATA_QUALITY_RULES.md),
+  [scoring algorithm](docs/SCORING_ALGORITHM.md) and [SQL/metric guidance](docs/sql_queries/README.md)
 
 ## Table of Contents
 
@@ -79,7 +89,8 @@ purpose consent gate the downstream processing stage, not source receipt.
 
 ### Prerequisites
 
-- Python 3.11 or 3.14 (the CI matrix). The container image uses Python 3.14.
+- CI lists Python 3.11 and 3.14. The local reviewed environment uses 3.14.8.
+  The Dockerfile uses Python 3.15, which needs separate application-image acceptance.
 - PostgreSQL reachable through `DATABASE_URL` or `DATABASE_URL_FILE`.
 - Docker only for the container build and the synthetic PostgreSQL test run.
 
@@ -113,7 +124,10 @@ Set `WAREHOUSE_SCHEMA` to the approved application schema. Migrations and the
 V3.1 ingest refuse to start without it. Never commit credentials; reference
 mounted files through `DATABASE_URL_FILE` and `REDCAP_API_TOKEN_FILE`.
 
-### Migrate and load the baseline
+### Development shortcut example
+
+These are reference commands for an authorised synthetic development store.
+The shortcut does not provide the supported intake/history/permission flow.
 
 ```bash
 python -m etl.main migrate
@@ -185,7 +199,8 @@ purpose-consent services; scientific owners provide applicability decisions.
 screening dataset:
 
 1. Reads `etl/contracts/data_contract_v31.json`, which travels with the package.
-   The contract's SHA256 is recorded on every revision it writes.
+   A shortcut-specific contract digest is recorded. Its serialization differs
+   from the supported workflow's canonical contract digest.
 2. Fetches `GET /api/v31/baseline` from the configured source. The hosted mock
    service returns 150 participants at 223 fields each, with `study_id` of the
    form `MOCK-0001`.
@@ -194,11 +209,11 @@ screening dataset:
 4. Scores each record with the V3.1 scorer and upserts the subscale results into
    `nds_v31_derived`.
 
-The command is idempotent. Source inserts conflict on
-`(identity_key, storage_destination, revision)` and do nothing; derived rows
-upsert on `(source_id, calculation_version)`. Re-running does not duplicate
-history, and a corrected record arrives as a new revision rather than
-overwriting the previous one.
+The shortcut fixes source revision at 1. Conflicting source inserts do nothing,
+while derived rows upsert on `(source_id, calculation_version)`. A corrected
+answer can therefore leave the earlier source payload and replace its derived
+result. This is the deferred N02 history defect. The supported intake/repository
+path appends revisions and retains provenance, as described in the lineage.
 
 `EPI` and `NSES` remain `NULL` unless screening applicability has been confirmed
 externally. The scorer refuses to guess for out-of-school or unknown status, so
@@ -215,10 +230,10 @@ a `null` there is a deliberate unavailable state, not a failure.
 | `003_legacy_columns` | Adds eleven nullable legacy columns and rejects incompatible manual repairs |
 | `004_storage_integrity` | Scopes research revisions by storage destination and adds intake head, revision and queue constraints |
 
-The head revision is `004_storage_integrity`. The chain is forward-only: an
-upgrade to head preserves every existing row, and no migration truncates or drops
-data. Both `002` and `004` refuse destructive automatic rollback with retained
-data; recovery is a reviewed forward procedure, not a downgrade.
+The head revision is `004_storage_integrity`. Upgrades add schema and integrity
+repairs without deleting retained rows. Migration 002 blocks rollback of nonempty
+tables; 003 and 004 require reviewed forward repair. Historical migration 001 has
+a destructive schema downgrade and must not be used as a recovery procedure.
 
 Review the revision range and offline SQL before execution:
 
@@ -271,6 +286,10 @@ docker build -t neps-data-platform:local .
 The image runs as an unprivileged `neps` user and ships `etl/`, `alembic/` and
 `ops/`. It contains no CLI default subcommand, so the runtime owner supplies the
 invocation.
+
+It currently omits `docs/sql_queries/`. DevOps must package or mount those reviewed
+SQL files if the reporting helper is used inside the image. Host-checkout tests do
+not establish that deployment packaging or the Python 3.15 image works.
 
 In the infrastructure stack the service starts with:
 
