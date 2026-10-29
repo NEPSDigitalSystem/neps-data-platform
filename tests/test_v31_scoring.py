@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import unittest
+from fractions import Fraction
 from etl.scoring.v31 import Scorer, composite
 ROOT = Path(__file__).resolve().parent / 'fixtures'
 CONTRACT = Path(__file__).resolve().parents[1] / 'etl/contracts/data_contract_v31.json'
@@ -34,11 +35,23 @@ class ScoringTests(unittest.TestCase):
                         self.assertAlmostEqual(float(result.scores[name].value), expected, places=12)
 
     def test_each_core_item_required_for_affected_score(self):
+        baseline = self.scorer.score(self.base, epi_applicable=True)
         for name in self.contract['core_73_fields']:
             with self.subTest(field=name):
                 result = self.scorer.score({n:v for n,v in self.base.items() if n != name}, epi_applicable=True)
-                self.assertIsNone(result.scores['NSES'].value)
-                self.assertIn(name, [i.field for i in result.scores['NSES'].issues])
+                family = name.split('_', 1)[0]
+                affected = {
+                    'epi': {'EPI'}, 'esi': {'ESI'}, 'sbi': {'SBI'},
+                    'k6': {'K6_total', 'MHDI'},
+                    'brs': {'BRS_100', 'PFI'},
+                    'mspss': {'MSPSS_100', 'PFI'}, 'gse': {'GSE_100', 'PFI'},
+                }[family] | {'NSES'}
+                for score_name, score in result.scores.items():
+                    if score_name in affected:
+                        self.assertIsNone(score.value)
+                        self.assertEqual([(i.field, i.state) for i in score.issues], [(name, 'missing')])
+                    else:
+                        self.assertEqual(score, baseline.scores[score_name])
 
     def test_applicability_fail_closed(self):
         result = self.scorer.score(self.base)
@@ -74,7 +87,12 @@ class ScoringTests(unittest.TestCase):
     def test_contract_drift_changes_version(self):
         altered = copy.deepcopy(self.contract)
         altered['contract_version'] += '-test'
-        self.assertNotEqual(self.scorer.version, Scorer(altered).version)
+        original = self.scorer.score(self.base, epi_applicable=True)
+        revised = Scorer(altered).score(self.base, epi_applicable=True)
+        self.assertNotEqual(original.algorithm_version, revised.algorithm_version)
+        self.assertNotEqual(original.contract_sha256, revised.contract_sha256)
+        self.assertEqual(original.source_sha256, revised.source_sha256)
+        self.assertEqual(original.scores, revised.scores)
 
     def test_bad_contract_rejected(self):
         for kind in ('membership','choice','direction'):
@@ -97,7 +115,21 @@ class ScoringTests(unittest.TestCase):
             self.scorer.score({}, epi_applicable='yes')
 
     def test_components_bounds(self):
-        for value in (-1,101):
-            with self.assertRaises(ValueError): composite(value,0,0,0,0)
+        for position in range(5):
+            for value in (-1,101):
+                values = [0, 0, 0, 0, 100]
+                values[position] = value
+                with self.subTest(position=position, value=value), self.assertRaises(ValueError):
+                    composite(*values)
+
+    def test_composite_each_weight_and_protective_direction(self):
+        self.assertEqual(composite(0, 0, 0, 0, 100), 0)
+        for values, expected in [
+            ((100, 0, 0, 0, 100), 30), ((0, 100, 0, 0, 100), 25),
+            ((0, 0, 100, 0, 100), 20), ((0, 0, 0, 100, 100), 20),
+            ((0, 0, 0, 0, 0), 5), ((80, 60, 40, 20, 70), Fraction(105, 2)),
+        ]:
+            with self.subTest(values=values):
+                self.assertEqual(composite(*values), expected)
 
 if __name__ == '__main__': unittest.main()

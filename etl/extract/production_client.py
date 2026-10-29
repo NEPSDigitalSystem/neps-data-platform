@@ -86,9 +86,10 @@ def metadata_to_dictionary(raw: Any) -> list[dict[str, str]]:
 class ProductionRedcapClient:
     """Native REDCap export with a default-deny production boundary.
 
-    No application policy provider is wired by this change. Existing callers
-    fail before HTTP even with a token. Injected synthetic test policy/transport
-    establishes neither live identity permission nor country-transfer approval.
+    Requests require an explicit policy provider, even with a token.
+    source_runtime.build_collector supplies a configured source service grant.
+    Injected synthetic test policy/transport establishes neither live identity
+    permission nor country-transfer approval.
     """
     source_mode = "production"
 

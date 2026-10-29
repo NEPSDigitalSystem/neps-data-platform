@@ -6,18 +6,17 @@ old answers. Only the supplied trusted adapter grants current permissions.
 """
 from __future__ import annotations
 
-import ast
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
-import re
 from typing import Protocol
 from uuid import uuid4
 
 from sqlalchemy import Column, ForeignKey, Integer, JSON, MetaData, String, Table, UniqueConstraint, CheckConstraint, select
 from etl.load.locking import lock_identity
+from etl.validation.v31_validator import branch_state, validate, validate_scores
 
 metadata = MetaData()
 raw = Table('nds_v31_source', metadata,
@@ -91,35 +90,6 @@ def digest(value):
     return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
-def branch_state(expression, payload):
-    """Strict equality/and/or grammar; missing predicates remain unknown."""
-    if not expression:
-        return True
-    predicates = []
-    def replace(match):
-        name, code = match.groups()
-        val = payload.get(name)
-        predicates.append(None if val in (None, '') else val == code)
-        return 'p' + str(len(predicates) - 1)
-    replaced = re.sub(r"\[([a-z][a-z0-9_]*)\]\s*=\s*'([^']*)'", replace, expression)
-    try:
-        tree = ast.parse(replaced, mode='eval')
-        def evaluate(node):
-            if isinstance(node, ast.Expression):
-                return evaluate(node.body)
-            if isinstance(node, ast.Name) and re.fullmatch(r'p\d+', node.id):
-                return predicates[int(node.id[1:])]
-            if isinstance(node, ast.BoolOp) and isinstance(node.op, (ast.And, ast.Or)):
-                vals = [evaluate(n) for n in node.values]
-                if isinstance(node.op, ast.And):
-                    return False if False in vals else None if None in vals else True
-                return True if True in vals else None if None in vals else False
-            raise ValueError('Unsupported branching')
-        return evaluate(tree)
-    except (SyntaxError, ValueError, IndexError):
-        return None
-
-
 class Repository:
     def __init__(self, engine, adapter: PolicyAdapter | None = None, *, storage_destination: str | None = None):
         self.engine, self.adapter = engine, adapter
@@ -150,52 +120,8 @@ class Repository:
         return state
 
     def _validate(self, payload, source_fields=None):
-        values, issues = {}, {}
-        fields = self.fields if source_fields is None else source_fields
-        for name, value in payload.items():
-            field = fields.get(name)
-            if field is None:
-                issues[name] = 'unknown_field'
-                continue
-            if name in self.source_only:
-                issues[name] = 'source_only_administrative_or_derived'
-                continue
-            if value in (None, ''):
-                values[name] = value
-                continue
-            branch = branch_state(field['Branching Logic (Show field only if...)'], payload)
-            if branch is not True:
-                issues[name] = 'inapplicable' if branch is False else 'branch_unverified'
-                continue
-            kind = field['Field Type']
-            choices = {p.strip().split(',', 1)[0] for p in field['Choices, Calculations, OR Slider Labels'].split('|')}
-            if kind in ('radio', 'dropdown') and (type(value) is not str or value not in choices):
-                issues[name] = 'invalid_code'
-            elif kind == 'checkbox' and (type(value) is not dict or set(value) - choices
-                    or any(type(v) is not str or v not in ('0', '1', '') for v in value.values())):
-                issues[name] = 'invalid_checkbox'
-            elif kind not in ('radio', 'dropdown', 'checkbox'):
-                validation = field['Text Validation Type OR Show Slider Number']
-                if kind != 'text' or validation not in ('', 'integer'):
-                    issues[name] = 'validator_unverified'
-                elif type(value) is not str:
-                    issues[name] = 'invalid_text'
-                elif validation == 'integer':
-                    if not re.fullmatch(r'[+-]?\d+', value):
-                        issues[name] = 'invalid_integer'
-                    else:
-                        number = int(value)
-                        minimum, maximum = field['Text Validation Min'], field['Text Validation Max']
-                        if ((minimum and number < int(minimum)) or
-                                (maximum and number > int(maximum))):
-                            issues[name] = 'outside_dictionary_range'
-                        else:
-                            values[name] = value
-                else:
-                    values[name] = value
-            else:
-                values[name] = value
-        return values, issues
+        result = validate(payload, self.contract, source_fields=source_fields)
+        return result.values, result.legacy_issues
 
     def ingest(self, identity, payload, source_version, actor='sync', *, nds_participant_id=None, source_metadata=None, intake_revision_id=None):
         if type(self.storage_destination) is not str or not self.storage_destination:
@@ -213,7 +139,12 @@ class Repository:
         for field, component in [('redcap_event_name', identity.event),
                                  ('redcap_repeat_instrument', identity.instrument),
                                  ('redcap_repeat_instance', identity.instance)]:
-            if field in payload and payload[field] != component:
+            observed = payload.get(field)
+            # The collector accepts native integer repeat instances and uses
+            # strings only in the identity. Preserve the observed JSON value.
+            if field == 'redcap_repeat_instance' and type(observed) is int:
+                observed = str(observed)
+            if field in payload and observed != component:
                 raise AccessDenied('Source event/repeat linkage differs from trusted identity')
         if payload.get('study_id') != identity.participant:
             raise AccessDenied('Source linkage differs from trusted identity')
@@ -276,6 +207,10 @@ class Repository:
         if not calculation_version:
             raise ValueError('Calculation version required')
         canonical(result)
+        # Generic historical derivations remain supported. A score envelope
+        # must satisfy the reviewed ten-result schema before persistence.
+        if 'scores' in result and any(i.blocks_field for i in validate_scores(result)):
+            raise ValueError('Invalid V3.1 scoring result')
         with self.engine.begin() as conn:
             lock_identity(conn, 'derivation', source_id)
             row = conn.execute(select(raw).where(raw.c.id == source_id)).mappings().one()
@@ -315,9 +250,12 @@ class Repository:
             if row is None:
                 return None
             self._check_registration(row, state)
-            layer = conn.execute(select(validated).where(validated.c.source_id == row['id'])).mappings().one()
             from etl.analytics.v31_review import completion
-            summary = completion(self.contract, row['payload'], layer['values'], layer['issues'])
+            source_fields = None if row['source_metadata'] is None else {
+                f['Variable / Field Name']: f for f in row['source_metadata']}
+            quality = validate(row['payload'], self.contract, source_fields=source_fields)
+            summary = completion(self.contract, row['payload'], quality.values, quality.legacy_issues)
+            summary['quality'] = quality.summary()
             summary.update(source_version=row['source_version'], source_sha256=row['change_hash'], revision=row['revision'])
             self._audit(conn, row['id'], 'review', actor)
             return summary

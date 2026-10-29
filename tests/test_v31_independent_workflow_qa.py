@@ -3,7 +3,8 @@ import copy
 import pytest
 from sqlalchemy import select
 from test_v31_workflow import env,row,count,C
-from etl.intake.v31 import raw as intake_raw,pending,IntakeUnavailable
+from etl.intake.v31 import raw as intake_raw,pending,audit as intake_audit,IntakeUnavailable
+from etl.extract.production_client import RedcapClientError
 from etl.repository.v31 import raw
 from etl.contracts.survey_consent import extend
 from etl.contracts.v31 import NAME,BRANCH,TYPE,CHOICES
@@ -22,7 +23,12 @@ def test_collector_never_calls_nds_repository_links_or_consent(env,monkeypatch):
  with e.connect() as c:assert c.execute(select(pending.c.state)).scalar_one()=='pending'
 
 def test_midbatch_receipt_failure_does_not_lose_already_durable_data(env,monkeypatch):
- e,p,r,t,w,i=env;t.rows=[row(),row()|{'study_id':'SECOND-OFFLINE-ID'}]
+ e,p,r,t,w,i=env
+ # This earlier identity is omitted by the next export. An interrupted export
+ # must not mark it absent before all incoming records are durable.
+ t.rows=[row()|{'study_id':'PREVIOUS-OFFLINE-ID'}]
+ w.collector.sync(source_version='stable-v1')
+ t.rows=[row(),row()|{'study_id':'SECOND-OFFLINE-ID'}]
  original=w.intake.receive;attempt=[0]
  def interrupted(*a,**k):
   attempt[0]+=1
@@ -30,10 +36,36 @@ def test_midbatch_receipt_failure_does_not_lose_already_durable_data(env,monkeyp
   return original(*a,**k)
  monkeypatch.setattr(w.intake,'receive',interrupted)
  with pytest.raises(IntakeUnavailable):w.collector.sync(source_version='stable-v1')
- assert count(e,intake_raw)==1 and count(e,raw)==0
+ assert count(e,intake_raw)==2 and count(e,raw)==0
+ with e.connect() as c:
+  assert c.execute(select(intake_audit).where(
+   intake_audit.c.action=='not_seen_in_full_export')).first() is None
  monkeypatch.setattr(w.intake,'receive',original)
  assert w.collector.sync(source_version='stable-v1')['received']==2
- assert count(e,intake_raw)==2 and count(e,pending)==2
+ assert count(e,intake_raw)==3 and count(e,pending)==3
+ with e.connect() as c:
+  assert len(c.execute(select(intake_audit).where(
+   intake_audit.c.action=='not_seen_in_full_export')).all())==1
+
+
+@pytest.mark.parametrize('records', [None, {}, 'malformed-success-body', [None],
+                                   [row(), {'study_id': ''}]])
+def test_malformed_native_export_cannot_write_a_partial_batch(env, records):
+ e,p,r,t,w,i=env;t.rows=records
+ with pytest.raises(RedcapClientError):
+  w.collector.sync(source_version='synthetic-malformed-v1')
+ assert count(e,intake_raw)==count(e,pending)==count(e,intake_audit)==count(e,raw)==0
+
+
+def test_invalid_later_repeat_context_prevents_all_receipts(env):
+ from etl.sync.source_runtime import SourceServiceGrant
+ from test_v31_source_runtime import config
+ e,p,r,t,w,i=env
+ w.collector.context_provider=SourceServiceGrant(config(SOURCE_EVENT_MODE='auto')).context
+ t.rows=[row(),row()|{'study_id':'INVALID-REPEAT','redcap_repeat_instance':True}]
+ with pytest.raises(ValueError):
+  w.collector.sync(source_version='synthetic-malformed-context-v1')
+ assert count(e,intake_raw)==count(e,pending)==count(e,intake_audit)==count(e,raw)==0
 
 def test_corrected_offline_data_retained_while_nds_downstream_withdrawn(env):
  e,p,r,t,w,i=env

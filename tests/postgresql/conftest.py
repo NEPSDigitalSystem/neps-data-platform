@@ -18,6 +18,9 @@ SCHEMA = 'neps_source'
 def pg_admin():
     ref = os.environ.get('NEPS_DE03_PG_URL_FILE')
     if not ref:
+        if any(os.environ.get(key) for key in ('NEPS_DE03_APPROVED', 'NEPS_DE03_CONTAINER',
+                                              'NEPS_DE03_NETWORK', 'NEPS_DE03_RECOVERY_EVIDENCE')):
+            pytest.fail('Incomplete synthetic PostgreSQL opt-in; URL file is required')
         pytest.skip('Requires approved synthetic PostgreSQL and NEPS_DE03_PG_URL_FILE')
     if os.environ.get('NEPS_DE03_APPROVED') != 'synthetic-disposable':
         pytest.fail('Explicit synthetic disposable scope approval is required')

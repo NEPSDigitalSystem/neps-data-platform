@@ -11,7 +11,7 @@ REFERENCES = ROOT / 'tests/fixtures/v31_reference'
 
 
 def test_reference_and_independent_golden_bytes_match_handover():
-    for item in json.loads((ROOT / 'tests/fixtures/v31_sources.json').read_text()):
+    for item in json.loads((ROOT / 'tests/fixtures/v31_sources.json').read_text(encoding='utf-8')):
         assert hashlib.sha256((ROOT / item['path']).read_bytes()).hexdigest() == item['sha256']
 
 

@@ -1,0 +1,56 @@
+name: V3.1 scoring regression
+
+on:
+  push:
+    branches: [fix/v31-unicode-scoring-regression]
+  pull_request:
+    branches: [main, staging, de/local-data-engineering-tasks]
+    paths:
+      - 'etl/contracts/**'
+      - 'etl/scoring/**'
+      - 'tests/**'
+      - 'requirements*.txt'
+      - '.github/workflows/v31-scoring-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scoring:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.14']
+    env:
+      PYTHONUTF8: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Record runtime and default encoding
+        run: python -c "import locale, platform, sys; print(sys.version); print(platform.platform()); print(locale.getencoding()); print('utf8_mode', sys.flags.utf8_mode)"
+      - name: Run Unicode, golden, source-integrity and contract checks
+        run: >-
+          python -m pytest
+          tests/test_v31_unicode_regression.py
+          tests/test_v31_scoring.py
+          tests/test_v31_scoring_qa.py
+          tests/test_v31_contract.py
+          tests/test_v31_contract_qa.py
+          tests/test_contract_portability.py
+          tests/test_ingest_v31_contract.py
+          -q -ra --junitxml=v31-scoring-results.xml
+      - name: Save regression results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v31-scoring-${{ matrix.os }}-python-${{ matrix.python }}
+          path: v31-scoring-results.xml

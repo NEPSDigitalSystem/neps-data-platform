@@ -1,9 +1,9 @@
-"""Additive candidate schema, deliberately not registered in active Alembic.
+"""Four-table SQLAlchemy helper for local synthetic repository tests.
 
-Existing 001_initial owns PostgreSQL redcap schema and legacy tables; these
-four nds_v31_* tables do not alter them. Production schema selection, trusted
-adapters, encryption/roles/backup and PostgreSQL DDL review remain gated.
-Never use legacy downgrade (DROP SCHEMA CASCADE) for this candidate.
+The active Alembic chain 002 through 004 owns the full nine-table warehouse
+schema, including intake and participant links. This helper does not replace
+that chain or provision its schema. Live permissions and deployment acceptance
+remain external. Never use legacy downgrade (DROP SCHEMA CASCADE) for recovery.
 """
 from .v31 import metadata
 
